@@ -7,7 +7,7 @@ import {
     LogOut, Menu, X, ChevronRight
 } from 'lucide-react';
 
-const UPN_LOGO = '/upn-logo.png';
+const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
 
 const NAV_ITEMS = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Inicio' },

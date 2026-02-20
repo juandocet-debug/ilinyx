@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Lock, ArrowRight, Eye, EyeOff, CreditCard } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
-const UPN_LOGO = '/upn-logo.png';
+const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
+const SYSTEM_LOGO = 'https://i.ibb.co/7NNjZJ44/Chat-GPT-Image-20-feb-2026-06-33-06-p-m.png';
 
 export default function Login() {
     const { login } = useUser();
@@ -96,16 +97,11 @@ export default function Login() {
                                 <span className="text-[10px] text-white font-bold">Activo</span>
                             </div>
                         </div>
-                        {/* Ícono decorativo */}
-                        <div className="bg-white flex items-center justify-center py-8 relative overflow-hidden">
+                        {/* Logo del sistema */}
+                        <div className="bg-white flex items-center justify-center py-6 relative overflow-hidden">
                             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-200/50 blur-xl rounded-full" />
-                            <div className="relative flex flex-col items-center gap-3">
-                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-ilinyx-500 to-ilinyx-700 flex items-center justify-center shadow-xl shadow-ilinyx-500/30">
-                                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                </div>
+                            <div className="relative flex flex-col items-center gap-2">
+                                <img src={SYSTEM_LOGO} alt="Logo ILINYX" className="h-24 w-24 object-contain rounded-2xl shadow-xl shadow-ilinyx-500/20" />
                                 <p className="text-ilinyx-700 font-black text-lg tracking-widest uppercase">ILINYX</p>
                             </div>
                         </div>

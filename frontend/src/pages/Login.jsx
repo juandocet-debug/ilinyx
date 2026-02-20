@@ -32,122 +32,117 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row shadow-2xl overflow-hidden">
+        <div className="min-h-screen flex overflow-hidden">
 
-            {/* ── Panel izquierdo (decorativo) ────────────────────────── */}
-            <div className="hidden md:flex md:w-1/2 bg-ilinyx-700 relative flex-col justify-between items-center text-white p-10 overflow-hidden">
+            {/* ── Panel izquierdo — Morado ILINYX ── */}
+            <div className="hidden md:flex md:w-[45%] relative flex-col justify-center items-center overflow-hidden"
+                style={{ background: 'linear-gradient(145deg, #4c1d95 0%, #6d28d9 50%, #7c3aed 100%)' }}>
 
-                {/* Fondos decorativos */}
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-[-15%] left-[-15%] w-[600px] h-[600px] rounded-full bg-white/5 blur-3xl" />
-                    <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-400/10 blur-3xl" />
+                {/* Óvalo grande fondo — superior derecho */}
+                <div className="absolute -top-20 -right-20 w-[360px] h-[360px] rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.07)' }} />
+
+                {/* Óvalo mediano — inferior izquierdo */}
+                <div className="absolute -bottom-24 -left-12 w-[280px] h-[280px] rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.07)' }} />
+
+                {/* Óvalo pequeño flotante */}
+                <div className="absolute top-[20%] right-[-50px] w-[160px] h-[160px] rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.05)' }} />
+
+                {/* Contenido central */}
+                <div className="relative z-10 flex flex-col items-center gap-8 px-12 text-white text-center">
+
+                    {/* Óvalo con logo UPN */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6 }}
+                        className="w-36 h-36 rounded-full bg-white shadow-2xl flex items-center justify-center"
+                        style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.3)' }}
+                    >
+                        <img src={UPN_LOGO} alt="Logo UPN" className="w-24 h-24 object-contain" />
+                    </motion.div>
+
+                    {/* Texto central */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                        className="space-y-2"
+                    >
+                        <h1 className="text-3xl font-black tracking-tight">BIENVENIDO</h1>
+                        <p className="text-purple-200 font-semibold text-sm uppercase tracking-widest">
+                            Gestión de Actas y Cohortes
+                        </p>
+                        <p className="text-white/60 text-xs leading-relaxed max-w-[220px] mx-auto">
+                            Licenciatura en Recreación · Universidad Pedagógica Nacional
+                        </p>
+                    </motion.div>
+
+                    {/* Óvalo con logo del sistema ILINYX */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.35, duration: 0.6 }}
+                        className="w-28 h-28 rounded-full bg-white/15 border-2 border-white/30 shadow-xl flex items-center justify-center backdrop-blur-sm"
+                    >
+                        <img src={SYSTEM_LOGO} alt="Logo ILINYX" className="w-20 h-20 object-contain" />
+                    </motion.div>
+
+                    {/* Badge activo */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="flex items-center gap-2 bg-white/15 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest"
+                    >
+                        <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                        ILINYX · Activo
+                    </motion.div>
                 </div>
-
-                {/* Logo UPN */}
-                <motion.div
-                    initial={{ opacity: 0, y: -16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="relative z-10 text-center pt-4 w-full"
-                >
-                    <div className="inline-block bg-white rounded-2xl px-6 py-4 shadow-2xl shadow-black/20">
-                        <img src={UPN_LOGO} alt="Logo UPN" className="h-24 object-contain mx-auto" />
-                    </div>
-                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.3em] mt-3">
-                        Universidad Pedagógica Nacional
-                    </p>
-                </motion.div>
-
-                {/* Título central */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.25, duration: 0.5 }}
-                    className="relative z-10 text-center space-y-2 px-4"
-                >
-                    <h1 className="text-2xl lg:text-3xl font-bold tracking-tight leading-snug">
-                        Sistema de Gestión de<br />Actas y Cohortes
-                    </h1>
-                    <p className="text-purple-200/80 font-medium tracking-[0.2em] uppercase text-xs">
-                        Licenciatura en Recreación
-                    </p>
-                </motion.div>
-
-                {/* Tarjeta ILINYX */}
-                <motion.div
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4, duration: 0.6, type: 'spring', stiffness: 100 }}
-                    className="relative z-10 w-full pb-2"
-                >
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="flex-1 h-px bg-white/15" />
-                        <span className="text-white/40 text-[10px] font-bold uppercase tracking-[0.25em]">Potenciado por</span>
-                        <div className="flex-1 h-px bg-white/15" />
-                    </div>
-
-                    <div className="bg-white rounded-3xl shadow-2xl shadow-black/25 overflow-hidden">
-                        <div className="bg-gradient-to-r from-ilinyx-600 to-purple-500 px-5 py-3 flex items-center justify-between">
-                            <div>
-                                <p className="text-xs font-black tracking-[0.25em] text-white uppercase">ILINYX</p>
-                                <p className="text-[10px] text-purple-100/90 font-medium mt-0.5">Gestión inteligente de actas</p>
-                            </div>
-                            <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2.5 py-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-                                <span className="text-[10px] text-white font-bold">Activo</span>
-                            </div>
-                        </div>
-                        {/* Logo del sistema */}
-                        <div className="bg-white flex items-center justify-center py-6 relative overflow-hidden">
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-200/50 blur-xl rounded-full" />
-                            <div className="relative flex flex-col items-center gap-2">
-                                <img src={SYSTEM_LOGO} alt="Logo ILINYX" className="h-24 w-24 object-contain rounded-2xl shadow-xl shadow-ilinyx-500/20" />
-                                <p className="text-ilinyx-700 font-black text-lg tracking-widest uppercase">ILINYX</p>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
             </div>
 
-            {/* ── Panel derecho (formulario) ───────────────────────────── */}
-            <div className="w-full md:w-1/2 flex items-center justify-center p-6 md:p-12 lg:p-24 bg-white">
-                <div className="w-full max-w-md space-y-8">
+            {/* ── Panel derecho — Formulario ── */}
+            <div className="w-full md:w-[55%] flex items-center justify-center bg-white px-6 md:px-12 lg:px-20">
+                <div className="w-full max-w-md">
 
-                    {/* Mobile header */}
-                    <div className="md:hidden mb-6 -mt-6 -mx-6 bg-ilinyx-700 px-6 py-5 rounded-b-[2.5rem] shadow-xl relative overflow-hidden text-white">
-                        <div className="absolute inset-0 opacity-10 pointer-events-none">
-                            <div className="absolute top-[-50%] left-[-50%] w-[400px] h-[400px] rounded-full bg-white blur-3xl" />
+                    {/* Header mobile */}
+                    <div className="md:hidden mb-8 flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-purple-700 flex items-center justify-center">
+                            <img src={UPN_LOGO} alt="UPN" className="w-8 h-8 object-contain" />
                         </div>
-                        <div className="relative z-10 flex items-center gap-4">
-                            <div className="bg-white p-2 rounded-xl shadow-md flex-shrink-0">
-                                <img src={UPN_LOGO} alt="UPN" className="h-12 object-contain" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold leading-tight">ILINYX</p>
-                                <p className="text-purple-200 text-[10px] tracking-widest uppercase mt-0.5">Gestión de Actas</p>
-                            </div>
+                        <div>
+                            <p className="font-black text-purple-800 text-sm">ILINYX</p>
+                            <p className="text-slate-400 text-xs">Gestión de Actas · UPN</p>
                         </div>
                     </div>
 
-                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-                        <div className="text-center md:text-left mb-10">
-                            <h2 className="text-3xl font-bold text-slate-900 mb-2">Iniciar sesión</h2>
-                            <p className="text-slate-500">Usa tu cuenta de Agon para ingresar.</p>
+                    <motion.div
+                        initial={{ opacity: 0, x: 24 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.15, duration: 0.5 }}
+                    >
+                        {/* Título */}
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-black text-slate-900 mb-1">Iniciar sesión</h2>
+                            <p className="text-slate-400 text-sm">Usa tu cuenta de Agon para ingresar al sistema.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-5">
+
                             {/* Cédula */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Número de Cédula</label>
-                                <div className="relative group">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-slate-700">Número de Cédula</label>
+                                <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <CreditCard className="h-5 w-5 text-slate-400 group-focus-within:text-ilinyx-600 transition-colors" />
+                                        <CreditCard className="h-4 w-4 text-slate-400" />
                                     </div>
                                     <input
                                         type="text"
                                         value={username}
                                         onChange={e => setUsername(e.target.value)}
-                                        className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ilinyx-500/20 focus:border-ilinyx-600 transition-all font-medium"
+                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition-all text-sm font-medium"
                                         placeholder="1234567890"
                                         inputMode="numeric"
                                     />
@@ -155,46 +150,45 @@ export default function Login() {
                             </div>
 
                             {/* Contraseña */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-slate-700 ml-1">Contraseña</label>
-                                <div className="relative group">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-slate-700">Contraseña</label>
+                                <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-slate-400 group-focus-within:text-ilinyx-600 transition-colors" />
+                                        <Lock className="h-4 w-4 text-slate-400" />
                                     </div>
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
-                                        className="block w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-ilinyx-500/20 focus:border-ilinyx-600 transition-all font-medium"
+                                        className="w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600 transition-all text-sm font-medium"
                                         placeholder="••••••••"
                                     />
                                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer">
-                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600">
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
                             </div>
 
                             {error && (
-                                <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center gap-2">
+                                <div className="p-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium border border-red-100 flex items-center gap-2">
                                     <span>⚠️</span> {error}
                                 </div>
                             )}
 
+                            {/* Botón principal */}
                             <button type="submit" disabled={loading}
-                                className="w-full bg-ilinyx-700 hover:bg-ilinyx-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-ilinyx-700/30 hover:shadow-ilinyx-700/40 flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] text-base disabled:opacity-70 disabled:cursor-not-allowed">
-                                {loading ? 'Ingresando...' : 'Iniciar sesión'} <ArrowRight className="h-5 w-5" />
+                                className="w-full py-4 rounded-xl text-white font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                                style={{ background: 'linear-gradient(135deg, #5b21b6, #7c3aed)', boxShadow: '0 4px 20px rgba(109,40,217,0.4)' }}>
+                                {loading ? 'Ingresando...' : 'Iniciar sesión'}
+                                <ArrowRight className="h-4 w-4" />
                             </button>
                         </form>
 
-                        <div className="mt-10 flex items-center justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity">
-                            <div className="w-7 h-7 rounded-lg bg-ilinyx-700 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                            </div>
-                            <p className="text-xs text-slate-400">ILINYX · © 2026 Universidad Pedagógica Nacional</p>
+                        {/* Footer */}
+                        <div className="mt-10 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400">
+                            <img src={SYSTEM_LOGO} alt="ILINYX" className="h-6 object-contain opacity-60" />
+                            <span className="text-xs">ILINYX · © 2026 Universidad Pedagógica Nacional</span>
                         </div>
                     </motion.div>
                 </div>

@@ -119,7 +119,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 # ── DRF + JWT ──────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'config.agon_auth.AgonJWTAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': None,
     'PAGE_SIZE': None,

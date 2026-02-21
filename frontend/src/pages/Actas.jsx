@@ -57,10 +57,17 @@ export default function ActasPage() {
             const [a, d, g, t] = await Promise.all([
                 getActas(), getDocumentos(), getGrupos(), getTeachers()
             ]);
-            setActas(a.data);
-            setDocs(d.data);
-            setGrupos(g.data);
-            setTeachers(t.data);
+            // Normaliza: algunos endpoints devuelven { results: [] } (paginado) y otros array directo
+            const toArr = (res) => {
+                const d = res.data;
+                if (Array.isArray(d)) return d;
+                if (d && Array.isArray(d.results)) return d.results;
+                return [];
+            };
+            setActas(toArr(a));
+            setDocs(toArr(d));
+            setGrupos(toArr(g));
+            setTeachers(toArr(t));
         } catch { notify('Error cargando datos', 'error'); }
         finally { setLoading(false); }
     };

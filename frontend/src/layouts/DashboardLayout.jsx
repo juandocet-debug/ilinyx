@@ -24,18 +24,35 @@ export default function DashboardLayout() {
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full">
-            {/* Header sidebar */}
-            <div className="px-6 py-6 border-b border-ilinyx-800/50">
+            {/* ── Cabecera: Perfil del usuario ── */}
+            <div className="px-5 pt-6 pb-4">
                 <div className="flex items-center gap-3">
-                    <div className="bg-white rounded-xl p-1.5 shadow-md flex-shrink-0">
-                        <img src={UPN_LOGO} alt="UPN" className="h-8 object-contain" />
+                    <div className="relative flex-shrink-0">
+                        {user?.photo ? (
+                            <img
+                                src={user.photo}
+                                alt="User"
+                                className="w-11 h-11 rounded-full object-cover border-2 border-white/20 shadow-sm"
+                            />
+                        ) : (
+                            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-ilinyx-400 to-ilinyx-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                {user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                            </div>
+                        )}
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-ilinyx-900 rounded-full"></span>
                     </div>
-                    <div>
-                        <p className="text-white font-black text-sm tracking-widest uppercase">ILINYX</p>
-                        <p className="text-ilinyx-300 text-[10px] font-medium">Gestión de Actas</p>
+                    <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-bold text-white truncate">
+                            {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
+                        </h3>
+                        <p className="text-[11px] text-ilinyx-300 font-medium capitalize">
+                            {user?.role?.toLowerCase()}
+                        </p>
                     </div>
                 </div>
             </div>
+            {/* Línea sutil */}
+            <div className="mx-5 border-t border-ilinyx-800/50"></div>
 
             {/* Navegación */}
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -56,17 +73,15 @@ export default function DashboardLayout() {
                 ))}
             </nav>
 
-            {/* Footer sidebar — info usuario */}
+            {/* Footer sidebar — branding ILINYX */}
             <div className="px-4 py-4 border-t border-ilinyx-800/50">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-ilinyx-800/50">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-ilinyx-400 to-ilinyx-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                        {user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-md">
+                        <img src={UPN_LOGO} alt="UPN" className="h-6 w-6 object-contain" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-white text-xs font-semibold truncate">
-                            {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
-                        </p>
-                        <p className="text-ilinyx-300 text-[10px] truncate capitalize">{user?.role?.toLowerCase()}</p>
+                        <p className="text-white text-xs font-semibold truncate">ILINYX</p>
+                        <p className="text-ilinyx-300 text-[10px] truncate">Gestión de Actas</p>
                     </div>
                     <button onClick={handleLogout}
                         className="text-ilinyx-300 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-400/10"
@@ -133,9 +148,13 @@ export default function DashboardLayout() {
                                 </p>
                                 <p className="text-xs text-slate-400 capitalize">{user?.role?.toLowerCase()}</p>
                             </div>
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-ilinyx-400 to-ilinyx-600 flex items-center justify-center text-white font-bold text-sm shadow">
-                                {user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
-                            </div>
+                            {user?.photo ? (
+                                <img src={user.photo} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-white shadow" />
+                            ) : (
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-ilinyx-400 to-ilinyx-600 flex items-center justify-center text-white font-bold text-sm shadow">
+                                    {user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </header>

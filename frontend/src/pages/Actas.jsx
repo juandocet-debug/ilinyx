@@ -110,7 +110,7 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
 function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow }) {
     return (
         <div className="space-y-2">
-            <div className="rounded-xl border border-slate-200 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 overflow-visible">
                 <table className="w-full">
                     <thead className="bg-slate-50">
                         <tr>

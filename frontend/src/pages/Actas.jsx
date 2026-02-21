@@ -34,6 +34,8 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
     const [open, setOpen] = useState(false);
     const wrapRef = useRef(null);
 
+    const ROLE_ES = { ADMIN: 'Administrador', TEACHER: 'Docente', STUDENT: 'Estudiante', COORDINATOR: 'Coordinador' };
+
     useEffect(() => {
         const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
         document.addEventListener('mousedown', handler);
@@ -79,7 +81,8 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
                         className="absolute z-50 mt-1 w-80 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                         {results.slice(0, 6).map(user => {
                             const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-                            const avatar = user.profile_picture || user.avatar || null;
+                            const avatar = user.photo || null;
+                            const rolEs = ROLE_ES[user.role] || user.role || '';
                             return (
                                 <button key={user.id} onClick={() => handleSelect(user)}
                                     className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-ilinyx-50 transition-colors text-left border-b border-slate-50 last:border-0">
@@ -91,8 +94,7 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
                                     }
                                     <div className="min-w-0">
                                         <p className="text-sm font-semibold text-slate-800 truncate">{name || user.username}</p>
-                                        <p className="text-xs text-slate-400 truncate">{user.email} · C.C. {user.username}</p>
-                                        {user.role && <p className="text-xs text-ilinyx-500 font-medium">{user.role}</p>}
+                                        {rolEs && <p className="text-xs text-ilinyx-500 font-medium">{rolEs}</p>}
                                     </div>
                                 </button>
                             );
@@ -103,6 +105,7 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
         </div>
     );
 }
+
 
 // ══════════════════════════════════════════════════════════════════
 // TABLA DINÁMICA DE PERSONAS (con autocomplete)
@@ -138,11 +141,12 @@ function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow }) {
                                         value={row.nombre}
                                         onChangeName={val => onChange(i, 'nombre', val)}
                                         onSelect={(user, name) => {
+                                            const ROLE_ES = { ADMIN: 'Administrador', TEACHER: 'Docente', STUDENT: 'Estudiante', COORDINATOR: 'Coordinador' };
                                             onChange(i, 'nombre', name);
-                                            onChange(i, 'cargo', user.role || user.cargo || '');
+                                            onChange(i, 'cargo', ROLE_ES[user.role] || user.role || user.cargo || '');
                                             onChange(i, 'email', user.email || '');
                                             onChange(i, 'user_id', user.id);
-                                            onChange(i, 'foto', user.profile_picture || user.avatar || '');
+                                            onChange(i, 'foto', user.photo || '');
                                         }}
                                     />
                                 </td>

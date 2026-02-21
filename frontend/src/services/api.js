@@ -24,14 +24,9 @@ api.interceptors.response.use(
     }
 );
 
-// ── Cliente Agon (para leer usuarios y roles) ───────────────────────────────
+// ── Cliente Agon (para leer usuarios — endpoint público, sin token) ──────────
 export const agonApi = axios.create({ baseURL: AGON_URL });
 
-agonApi.interceptors.request.use(cfg => {
-    const token = localStorage.getItem('ilinyx_token') || localStorage.getItem('access_token');
-    if (token) cfg.headers.Authorization = `Bearer ${token}`;
-    return cfg;
-});
 
 // ── Helpers reutilizables ───────────────────────────────────────────────────
 // Actas

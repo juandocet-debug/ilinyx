@@ -8,20 +8,6 @@ import {
 import { useUser } from '../context/UserContext';
 import { searchUsers } from '../services/api';
 
-// Estado global de AGON para no re-despertar en cada autocomplete
-let _agonStatus = 'unknown'; // 'unknown' | 'waking' | 'ok' | 'offline'
-let _agonListeners = [];
-const setAgonStatus = (s) => { _agonStatus = s; _agonListeners.forEach(fn => fn(s)); };
-const useAgonStatus = () => {
-    const [status, setStatus] = useState(_agonStatus);
-    useEffect(() => {
-        const fn = (s) => setStatus(s);
-        _agonListeners.push(fn);
-        return () => { _agonListeners = _agonListeners.filter(x => x !== fn); };
-    }, []);
-    return status;
-};
-
 const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
 const STEPS = ['Info. General', 'Agenda', 'Resultados', 'Firmas'];
 
@@ -46,35 +32,24 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
-    const [error, setError] = useState(null);
     const wrapRef = useRef(null);
-    const agonStatus = useAgonStatus();
 
-    // Cerrar al hacer click fuera
     useEffect(() => {
         const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
 
-    // Buscar con debounce
     useEffect(() => {
-        if (q.length < 2) { setResults([]); setOpen(false); setError(null); return; }
+        if (q.length < 2) { setResults([]); setOpen(false); return; }
         const t = setTimeout(async () => {
-            setLoading(true); setError(null);
+            setLoading(true);
             try {
                 const { data } = await searchUsers(q);
                 const list = Array.isArray(data) ? data : (data.results || []);
                 setResults(list);
-                setOpen(true); // abrimos aunque sea vacío para mostrar "sin resultados"
-                if (_agonStatus !== 'ok') setAgonStatus('ok');
-            } catch (e) {
-                setResults([]);
-                setOpen(true);
-                const offline = !e.response;
-                setError(offline ? 'offline' : 'error');
-                if (offline && _agonStatus !== 'offline') setAgonStatus('offline');
-            }
+                setOpen(list.length > 0);
+            } catch { setResults([]); setOpen(false); }
             finally { setLoading(false); }
         }, 350);
         return () => clearTimeout(t);
@@ -82,15 +57,8 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
 
     const handleSelect = (user) => {
         const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
-        setQ(name);
-        setOpen(false);
-        setError(null);
+        setQ(name); setOpen(false);
         onSelect(user, name);
-    };
-
-    const handleChange = (val) => {
-        setQ(val);
-        if (onChangeName) onChangeName(val);
     };
 
     return (
@@ -99,37 +67,19 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                 <input
                     value={q}
-                    onChange={e => handleChange(e.target.value)}
+                    onChange={e => { setQ(e.target.value); if (onChangeName) onChangeName(e.target.value); }}
                     placeholder={placeholder}
                     className="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-ilinyx-400/20 focus:border-ilinyx-500 transition-all"
                 />
                 {loading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ilinyx-400 animate-spin" />}
             </div>
             <AnimatePresence>
-                {open && (
+                {open && results.length > 0 && (
                     <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                         className="absolute z-50 mt-1 w-80 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
-                        {error === 'offline' && (
-                            <div className="flex items-center gap-2 px-3 py-3 bg-amber-50 border-b border-amber-100">
-                                <Loader2 className="h-4 w-4 text-amber-500 animate-spin flex-shrink-0" />
-                                <div>
-                                    <p className="text-xs font-bold text-amber-700">AGON está despertando...</p>
-                                    <p className="text-xs text-amber-600">Render (plan free) entra en reposo. Espera ~30s y vuelve a buscar.</p>
-                                </div>
-                            </div>
-                        )}
-                        {error === 'error' && (
-                            <div className="px-3 py-3 bg-red-50 border-b border-red-100">
-                                <p className="text-xs font-bold text-red-600">No se pudo conectar a AGON</p>
-                                <p className="text-xs text-red-500">Puedes escribir el nombre manualmente.</p>
-                            </div>
-                        )}
-                        {!error && results.length === 0 && (
-                            <p className="text-center text-xs text-slate-400 py-3">Sin resultados para "{q}"</p>
-                        )}
                         {results.slice(0, 6).map(user => {
                             const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-                            const avatar = user.profile_picture || user.avatar || user.foto || null;
+                            const avatar = user.profile_picture || user.avatar || null;
                             return (
                                 <button key={user.id} onClick={() => handleSelect(user)}
                                     className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-ilinyx-50 transition-colors text-left border-b border-slate-50 last:border-0">

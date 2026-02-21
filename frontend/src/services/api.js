@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // En dev apunta al backend de Ilinyx. En producción Render lo sirve todo junto.
-const ILINYX_URL = import.meta.env.VITE_ILINYX_API_URL || '/api';
+const ILINYX_URL = import.meta.env.VITE_API_URL || '/api';
 const AGON_URL = import.meta.env.VITE_AGON_API_URL || 'http://localhost:8000/api';
 
 // ── Cliente Ilinyx ──────────────────────────────────────────────────────────

@@ -38,11 +38,12 @@ export default function Login() {
                 className="hidden md:flex md:w-[45%] relative flex-col justify-center items-center gap-10 overflow-hidden px-10"
                 style={{ background: 'linear-gradient(150deg, #270050 0%, #6d28d9 60%, #8b5cf6 100%)' }}
             >
-                {/* Burbujas decorativas */}
-                <div className="absolute -top-36 -left-36 w-[480px] h-[480px] rounded-full"
-                    style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)' }} />
-                <div className="absolute -bottom-28 -right-28 w-[380px] h-[380px] rounded-full"
-                    style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)' }} />
+                {/* Círculos decorativos de fondo */}
+                <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-white/10" />
+                <div className="absolute top-10 -left-10 w-40 h-40 rounded-full bg-white/[0.07]" />
+                <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-white/10" />
+                <div className="absolute bottom-24 right-8 w-20 h-20 rounded-full bg-white/[0.08]" />
+                <div className="absolute top-1/2 -left-6 w-28 h-28 rounded-full bg-white/[0.06]" />
 
                 {/* Logo ILINYX en círculo grande — único elemento */}
                 <motion.div

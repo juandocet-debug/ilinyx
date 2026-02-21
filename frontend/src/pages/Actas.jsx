@@ -232,36 +232,6 @@ export default function ActasPage() {
                 </button>
             </div>
 
-            {/* Banner estado AGON */}
-            {agonStatus === 'waking' && (
-                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                    <Loader2 className="h-4 w-4 text-amber-500 animate-spin flex-shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold text-amber-700">AGON está despertando...</p>
-                        <p className="text-xs text-amber-600">El servidor de AGON (Render plan free) entró en reposo. Espera ~30 segundos y el autocomplete de búsqueda funcionará. Puedes escribir nombres manualmente mientras tanto.</p>
-                    </div>
-                </div>
-            )}
-            {agonStatus === 'offline' && (
-                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                    <Loader2 className="h-4 w-4 text-amber-500 animate-spin flex-shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold text-amber-700">AGON no responde aún — sigue intentando...</p>
-                        <p className="text-xs text-amber-600">Puedes escribir los nombres manualmente. En cuanto AGON despierte el autocomplete funcionará solo.</p>
-                    </div>
-                    <button onClick={() => { setAgonStatus('waking'); searchUsers('a').then(() => setAgonStatus('ok')).catch(() => setAgonStatus('offline')); }}
-                        className="ml-auto flex-shrink-0 text-xs font-bold bg-amber-200 hover:bg-amber-300 text-amber-800 px-3 py-1.5 rounded-lg transition-colors">
-                        Reintentar
-                    </button>
-                </div>
-            )}
-            {agonStatus === 'ok' && (
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <p className="text-sm font-semibold text-emerald-700">AGON conectado — el autocomplete de búsqueda está activo</p>
-                </div>
-            )}
-
             {/* Tabs */}
             <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
                 {['Todas las Actas', 'Mis Actas'].map((t, i) => (

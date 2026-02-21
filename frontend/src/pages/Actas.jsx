@@ -8,6 +8,20 @@ import {
 import { useUser } from '../context/UserContext';
 import { searchUsers } from '../services/api';
 
+// Estado global de AGON para no re-despertar en cada autocomplete
+let _agonStatus = 'unknown'; // 'unknown' | 'waking' | 'ok' | 'offline'
+let _agonListeners = [];
+const setAgonStatus = (s) => { _agonStatus = s; _agonListeners.forEach(fn => fn(s)); };
+const useAgonStatus = () => {
+    const [status, setStatus] = useState(_agonStatus);
+    useEffect(() => {
+        const fn = (s) => setStatus(s);
+        _agonListeners.push(fn);
+        return () => { _agonListeners = _agonListeners.filter(x => x !== fn); };
+    }, []);
+    return status;
+};
+
 const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
 const STEPS = ['Info. General', 'Agenda', 'Resultados', 'Firmas'];
 
@@ -32,7 +46,9 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [error, setError] = useState(null);
     const wrapRef = useRef(null);
+    const agonStatus = useAgonStatus();
 
     // Cerrar al hacer click fuera
     useEffect(() => {
@@ -43,15 +59,22 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
 
     // Buscar con debounce
     useEffect(() => {
-        if (q.length < 2) { setResults([]); setOpen(false); return; }
+        if (q.length < 2) { setResults([]); setOpen(false); setError(null); return; }
         const t = setTimeout(async () => {
-            setLoading(true);
+            setLoading(true); setError(null);
             try {
                 const { data } = await searchUsers(q);
                 const list = Array.isArray(data) ? data : (data.results || []);
                 setResults(list);
-                setOpen(list.length > 0);
-            } catch { setResults([]); }
+                setOpen(true); // abrimos aunque sea vacío para mostrar "sin resultados"
+                if (_agonStatus !== 'ok') setAgonStatus('ok');
+            } catch (e) {
+                setResults([]);
+                setOpen(true);
+                const offline = !e.response;
+                setError(offline ? 'offline' : 'error');
+                if (offline && _agonStatus !== 'offline') setAgonStatus('offline');
+            }
             finally { setLoading(false); }
         }, 350);
         return () => clearTimeout(t);
@@ -61,6 +84,7 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
         const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username;
         setQ(name);
         setOpen(false);
+        setError(null);
         onSelect(user, name);
     };
 
@@ -82,9 +106,27 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
                 {loading && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ilinyx-400 animate-spin" />}
             </div>
             <AnimatePresence>
-                {open && results.length > 0 && (
+                {open && (
                     <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        className="absolute z-50 mt-1 w-72 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                        className="absolute z-50 mt-1 w-80 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                        {error === 'offline' && (
+                            <div className="flex items-center gap-2 px-3 py-3 bg-amber-50 border-b border-amber-100">
+                                <Loader2 className="h-4 w-4 text-amber-500 animate-spin flex-shrink-0" />
+                                <div>
+                                    <p className="text-xs font-bold text-amber-700">AGON está despertando...</p>
+                                    <p className="text-xs text-amber-600">Render (plan free) entra en reposo. Espera ~30s y vuelve a buscar.</p>
+                                </div>
+                            </div>
+                        )}
+                        {error === 'error' && (
+                            <div className="px-3 py-3 bg-red-50 border-b border-red-100">
+                                <p className="text-xs font-bold text-red-600">No se pudo conectar a AGON</p>
+                                <p className="text-xs text-red-500">Puedes escribir el nombre manualmente.</p>
+                            </div>
+                        )}
+                        {!error && results.length === 0 && (
+                            <p className="text-center text-xs text-slate-400 py-3">Sin resultados para "{q}"</p>
+                        )}
                         {results.slice(0, 6).map(user => {
                             const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
                             const avatar = user.profile_picture || user.avatar || user.foto || null;
@@ -187,6 +229,16 @@ export default function ActasPage() {
     });
     const [current, setCurrent] = useState(null);
     const [step, setStep] = useState(0);
+    const agonStatus = useAgonStatus();
+
+    // Ping para despertar AGON al abrir la página
+    useEffect(() => {
+        if (_agonStatus !== 'unknown') return;
+        setAgonStatus('waking');
+        searchUsers('a')
+            .then(() => setAgonStatus('ok'))
+            .catch(() => setAgonStatus('offline'));
+    }, []);
 
     const saveAll = (list) => { setActas(list); localStorage.setItem('ilinyx_actas', JSON.stringify(list)); };
     const handleNew = () => { setCurrent(mkActa()); setStep(0); setView('form'); };
@@ -240,6 +292,36 @@ export default function ActasPage() {
                 </button>
             </div>
 
+            {/* Banner estado AGON */}
+            {agonStatus === 'waking' && (
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                    <Loader2 className="h-4 w-4 text-amber-500 animate-spin flex-shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-amber-700">AGON está despertando...</p>
+                        <p className="text-xs text-amber-600">El servidor de AGON (Render plan free) entró en reposo. Espera ~30 segundos y el autocomplete de búsqueda funcionará. Puedes escribir nombres manualmente mientras tanto.</p>
+                    </div>
+                </div>
+            )}
+            {agonStatus === 'offline' && (
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                    <Loader2 className="h-4 w-4 text-amber-500 animate-spin flex-shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-amber-700">AGON no responde aún — sigue intentando...</p>
+                        <p className="text-xs text-amber-600">Puedes escribir los nombres manualmente. En cuanto AGON despierte el autocomplete funcionará solo.</p>
+                    </div>
+                    <button onClick={() => { setAgonStatus('waking'); searchUsers('a').then(() => setAgonStatus('ok')).catch(() => setAgonStatus('offline')); }}
+                        className="ml-auto flex-shrink-0 text-xs font-bold bg-amber-200 hover:bg-amber-300 text-amber-800 px-3 py-1.5 rounded-lg transition-colors">
+                        Reintentar
+                    </button>
+                </div>
+            )}
+            {agonStatus === 'ok' && (
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <p className="text-sm font-semibold text-emerald-700">AGON conectado — el autocomplete de búsqueda está activo</p>
+                </div>
+            )}
+
             {/* Tabs */}
             <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
                 {['Todas las Actas', 'Mis Actas'].map((t, i) => (
@@ -249,6 +331,7 @@ export default function ActasPage() {
                     </button>
                 ))}
             </div>
+
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 {view === 'list' && (

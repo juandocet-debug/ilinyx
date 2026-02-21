@@ -27,6 +27,13 @@ api.interceptors.response.use(
 // ── Cliente Agon (ya no se usa directamente desde el browser) ───────────────
 export const agonApi = axios.create({ baseURL: AGON_URL });
 
+// agonApi también necesita enviar el JWT para endpoints como /users/me/
+agonApi.interceptors.request.use(cfg => {
+    const token = localStorage.getItem('ilinyx_token');
+    if (token) cfg.headers.Authorization = `Bearer ${token}`;
+    return cfg;
+});
+
 
 // ── Helpers reutilizables ───────────────────────────────────────────────────
 // Actas

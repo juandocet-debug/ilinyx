@@ -52,6 +52,7 @@ export const deleteGrupo = id => api.delete(`/grupos/${id}/`);
 
 // Usuarios de Agon (TEACHERs para seleccionar como asesores/docentes)
 export const getTeachers = () => agonApi.get('/users/?role=TEACHER');
+export const searchUsers = (q) => agonApi.get(`/users/?search=${encodeURIComponent(q)}`);
 export const getMe = () => agonApi.get('/users/me/');
 
 export default api;

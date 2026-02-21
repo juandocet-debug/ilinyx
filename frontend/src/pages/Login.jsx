@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 import { Lock, ArrowRight, Eye, EyeOff, CreditCard } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
-const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
-const ILINYX_LOGO = 'https://i.ibb.co/4w0QCLPs/ilixlogo.jpg';
+const ILINYX_LOGO = 'https://i.ibb.co/1WY1TMb/Chat-GPT-Image-20-feb-2026-07-55-52-p-m.png';
 
 export default function Login() {
     const { login } = useUser();
@@ -45,36 +44,21 @@ export default function Login() {
                 <div className="absolute -bottom-28 -right-28 w-[380px] h-[380px] rounded-full"
                     style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)' }} />
 
-                {/* Logo UPN en círculo */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.55 }}
-                    className="relative z-10 flex flex-col items-center gap-3"
-                >
-                    <div className="w-28 h-28 rounded-full bg-white shadow-2xl shadow-black/30 flex items-center justify-center">
-                        <img src={UPN_LOGO} alt="UPN" className="w-20 h-20 object-contain" />
-                    </div>
-                    <p className="text-white/45 text-[9px] font-bold uppercase tracking-[0.3em] text-center">
-                        Universidad Pedagógica Nacional
-                    </p>
-                </motion.div>
-
-                {/* Logo ILINYX en círculo grande */}
+                {/* Logo ILINYX en círculo grande — único elemento */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.85 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2, duration: 0.6, type: 'spring', stiffness: 80 }}
-                    className="relative z-10 flex flex-col items-center gap-4"
+                    transition={{ duration: 0.65, type: 'spring', stiffness: 80 }}
+                    className="relative z-10 flex flex-col items-center gap-6"
                 >
-                    <div className="w-44 h-44 rounded-full bg-white shadow-2xl flex items-center justify-center"
-                        style={{ boxShadow: '0 0 0 8px rgba(255,255,255,0.12), 0 12px 48px rgba(0,0,0,0.4)' }}>
-                        <img src={ILINYX_LOGO} alt="ILINYX" className="w-36 h-36 object-contain rounded-full" />
+                    <div className="w-52 h-52 rounded-full overflow-hidden flex items-center justify-center"
+                        style={{ boxShadow: '0 0 0 10px rgba(255,255,255,0.14), 0 16px 56px rgba(0,0,0,0.45)' }}>
+                        <img src={ILINYX_LOGO} alt="ILINYX" className="w-full h-full object-cover" />
                     </div>
-                    <div className="text-center space-y-0.5">
-                        <p className="text-white font-black text-xl tracking-widest">ILINYX</p>
-                        <p className="text-purple-200/70 text-[10px] font-semibold uppercase tracking-[0.25em]">
-                            Gestión de Actas · UPN
+                    <div className="text-center space-y-1.5">
+                        <p className="text-white font-black text-3xl tracking-[0.15em]">ILINYX</p>
+                        <p className="text-purple-200/75 text-xs font-semibold uppercase tracking-[0.22em]">
+                            Gestión de Actas y Cohortes
                         </p>
                     </div>
                 </motion.div>
@@ -90,12 +74,12 @@ export default function Login() {
 
                     {/* Mobile */}
                     <div className="md:hidden mb-8 flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-white border border-slate-200 shadow flex items-center justify-center overflow-hidden">
-                            <img src={ILINYX_LOGO} alt="ILINYX" className="w-9 h-9 object-contain" />
+                        <div className="w-11 h-11 rounded-full overflow-hidden shadow">
+                            <img src={ILINYX_LOGO} alt="ILINYX" className="w-full h-full object-cover" />
                         </div>
                         <div>
                             <p className="font-black text-purple-800 text-sm tracking-widest">ILINYX</p>
-                            <p className="text-slate-400 text-xs">Gestión de Actas · UPN</p>
+                            <p className="text-slate-400 text-xs">Gestión de Actas y Cohortes</p>
                         </div>
                     </div>
 
@@ -146,10 +130,7 @@ export default function Login() {
                         </form>
 
                         <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-center gap-2">
-                            <div className="w-5 h-5 rounded-full bg-white border border-slate-200 flex items-center justify-center overflow-hidden">
-                                <img src={ILINYX_LOGO} alt="" className="w-4 h-4 object-contain" />
-                            </div>
-                            <span className="text-[11px] text-slate-400">ILINYX · © 2026 Universidad Pedagógica Nacional</span>
+                            <span className="text-[11px] text-slate-400">Elaborado por <span className="font-semibold text-slate-500">Lic. Juan Ramírez</span> · © 2026</span>
                         </div>
                     </motion.div>
                 </div>

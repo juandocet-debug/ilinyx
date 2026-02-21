@@ -48,10 +48,8 @@ class ActaViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def search_agon_users(request):
     """
-    Proxy seguro: el frontend llama a este endpoint con su JWT de ILINYX,
+    Proxy seguro: el frontend llama a este endpoint con su JWT,
     y este servidor llama a AGON internamente usando la API key secreta.
-    El browser NUNCA ve ni envía la API key.
-    ?q=término → devuelve usuarios de AGON que coincidan.
     """
     q = request.query_params.get('q', '').strip()
     if len(q) < 2:
@@ -62,22 +60,34 @@ def search_agon_users(request):
 
     if not agon_url or not api_key:
         return Response(
-            {'detail': 'Configuración de AGON no encontrada en el servidor.'},
+            {'detail': 'Configuración de AGON no encontrada en el servidor.',
+             'agon_url_set': bool(agon_url), 'api_key_set': bool(api_key)},
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
 
+    target_url = f'{agon_url}/users/search/'
+
     try:
         resp = http_requests.get(
-            f'{agon_url}/users/search/',
+            target_url,
             params={'q': q},
             headers={'X-Ilinyx-Api-Key': api_key},
             timeout=10
         )
-        resp.raise_for_status()
+        # DEBUG: si AGON no retorna 200, mostrar el error
+        if resp.status_code != 200:
+            return Response({
+                'debug_error': True,
+                'agon_status': resp.status_code,
+                'agon_response': resp.text[:500],
+                'target_url': target_url,
+                'q': q,
+            })
         return Response(resp.json())
-    except http_requests.exceptions.ConnectionError:
-        return Response([], status=status.HTTP_200_OK)  # AGON dormido → lista vacía, sin error
+    except http_requests.exceptions.ConnectionError as e:
+        return Response({'debug_error': True, 'type': 'ConnectionError', 'detail': str(e)[:500], 'target_url': target_url})
     except http_requests.exceptions.Timeout:
-        return Response([], status=status.HTTP_200_OK)
-    except Exception:
-        return Response([], status=status.HTTP_200_OK)
+        return Response({'debug_error': True, 'type': 'Timeout', 'target_url': target_url})
+    except Exception as e:
+        return Response({'debug_error': True, 'type': type(e).__name__, 'detail': str(e)[:500], 'target_url': target_url})
+

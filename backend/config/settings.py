@@ -133,4 +133,9 @@ SIMPLE_JWT = {
 # En producción usa la URL real del backend de Agon en Render
 AGON_API_URL = os.environ.get('AGON_API_URL', 'http://localhost:8000/api')
 
+# ── Clave compartida ILINYX ↔ AGON (server-to-server) ──────────────────────
+# Debe ser la misma clave en ambos backends. Definirla como variable de entorno
+# en Render: ILINYX_API_KEY = <uuid aleatorio>
+ILINYX_API_KEY = os.environ.get('ILINYX_API_KEY', '')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

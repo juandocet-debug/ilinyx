@@ -24,7 +24,7 @@ api.interceptors.response.use(
     }
 );
 
-// ── Cliente Agon (para leer usuarios — endpoint público, sin token) ──────────
+// ── Cliente Agon (ya no se usa directamente desde el browser) ───────────────
 export const agonApi = axios.create({ baseURL: AGON_URL });
 
 
@@ -45,9 +45,11 @@ export const getGrupos = () => api.get('/grupos/');
 export const createGrupo = data => api.post('/grupos/', data);
 export const deleteGrupo = id => api.delete(`/grupos/${id}/`);
 
-// Usuarios de Agon (para autocomplete en Actas)
+// Usuarios de AGON — vía proxy seguro de ILINYX (server-to-server con API key)
+// El browser solo envía su JWT de ILINYX, la API key de AGON nunca sale del servidor
 export const getTeachers = () => agonApi.get('/users/?role=TEACHER');
-export const searchUsers = (q) => agonApi.get(`/users/search/?q=${encodeURIComponent(q)}`);
+export const searchUsers = (q) => api.get(`/actas/usuarios/buscar/?q=${encodeURIComponent(q)}`);
 export const getMe = () => agonApi.get('/users/me/');
+
 
 export default api;

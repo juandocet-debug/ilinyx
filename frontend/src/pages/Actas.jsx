@@ -179,16 +179,6 @@ export default function ActasPage() {
     });
     const [current, setCurrent] = useState(null);
     const [step, setStep] = useState(0);
-    const agonStatus = useAgonStatus();
-
-    // Ping para despertar AGON al abrir la página
-    useEffect(() => {
-        if (_agonStatus !== 'unknown') return;
-        setAgonStatus('waking');
-        searchUsers('a')
-            .then(() => setAgonStatus('ok'))
-            .catch(() => setAgonStatus('offline'));
-    }, []);
 
     const saveAll = (list) => { setActas(list); localStorage.setItem('ilinyx_actas', JSON.stringify(list)); };
     const handleNew = () => { setCurrent(mkActa()); setStep(0); setView('form'); };

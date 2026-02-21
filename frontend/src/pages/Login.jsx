@@ -38,12 +38,17 @@ export default function Login() {
                 className="hidden md:flex md:w-[45%] relative flex-col justify-center items-center gap-10 overflow-hidden px-10"
                 style={{ background: 'linear-gradient(150deg, #270050 0%, #6d28d9 60%, #8b5cf6 100%)' }}
             >
-                {/* Círculos decorativos de fondo */}
-                <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-white/10" />
-                <div className="absolute top-10 -left-10 w-40 h-40 rounded-full bg-white/[0.07]" />
-                <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-white/10" />
-                <div className="absolute bottom-24 right-8 w-20 h-20 rounded-full bg-white/[0.08]" />
-                <div className="absolute top-1/2 -left-6 w-28 h-28 rounded-full bg-white/[0.06]" />
+                {/* Círculos decorativos animados */}
+                <motion.div animate={{ x: [0, 15, 0], y: [0, -10, 0] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-white/10" />
+                <motion.div animate={{ x: [0, -12, 0], y: [0, 15, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                    className="absolute top-10 -left-10 w-40 h-40 rounded-full bg-white/[0.07]" />
+                <motion.div animate={{ x: [0, -18, 0], y: [0, 12, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+                    className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-white/10" />
+                <motion.div animate={{ x: [0, 10, 0], y: [0, -15, 0] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                    className="absolute bottom-24 right-8 w-20 h-20 rounded-full bg-white/[0.08]" />
+                <motion.div animate={{ x: [0, 8, 0], y: [0, 12, 0] }} transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
+                    className="absolute top-1/2 -left-6 w-28 h-28 rounded-full bg-white/[0.06]" />
 
                 {/* Logo ILINYX en círculo grande — único elemento */}
                 <motion.div

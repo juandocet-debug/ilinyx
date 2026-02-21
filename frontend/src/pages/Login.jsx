@@ -51,8 +51,8 @@ export default function Login() {
                     transition={{ duration: 0.65, type: 'spring', stiffness: 80 }}
                     className="relative z-10 flex flex-col items-center gap-6"
                 >
-                    <div className="w-52 h-52 rounded-full overflow-hidden flex items-center justify-center"
-                        style={{ boxShadow: '0 0 0 10px rgba(255,255,255,0.14), 0 16px 56px rgba(0,0,0,0.45)' }}>
+                    <div className="w-72 h-72 rounded-full overflow-hidden flex items-center justify-center"
+                        style={{ boxShadow: '0 0 0 14px rgba(255,255,255,0.18), 0 20px 70px rgba(0,0,0,0.5)' }}>
                         <img src={ILINYX_LOGO} alt="ILINYX" className="w-full h-full object-cover" />
                     </div>
                     <div className="text-center space-y-1.5">

@@ -82,9 +82,10 @@ USE_TZ = True
 # ── Estáticos ──────────────────────────────────────────────────────────────
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [
-    BASE_DIR.parent / 'frontend' / 'dist',
-]
+
+_FRONTEND_DIST = BASE_DIR.parent / 'frontend' / 'dist'
+STATICFILES_DIRS = [_FRONTEND_DIST] if _FRONTEND_DIST.exists() else []
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ── Cloudinary (fotos del acta, evidencias) ────────────────────────────────

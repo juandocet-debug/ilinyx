@@ -883,12 +883,12 @@ export default function ActasPage() {
                                             <td className="px-4 py-3">
                                                 {(() => {
                                                     const totalP = (a.asistentes?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0) + (a.invitados?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0);
-                                                    const totalF = a.firmas?.length || 0;
-                                                    const done = totalF >= totalP && totalP > 0;
+                                                    const signed = a.firmas?.filter(f => f.firmado).length || 0;
+                                                    const done = signed >= totalP && totalP > 0;
                                                     return (
                                                         <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                                                             <CheckCircle2 className={`h-3.5 w-3.5 ${done ? 'text-emerald-500' : 'text-amber-400'}`} />
-                                                            {totalF}/{totalP}
+                                                            {signed}/{totalP}
                                                         </span>
                                                     );
                                                 })()}

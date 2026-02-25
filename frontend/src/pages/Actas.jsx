@@ -818,7 +818,27 @@ export default function ActasPage() {
             )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                {view === 'list' && (
+                {/* Loading skeleton */}
+                {loading ? (
+                    <div className="py-16 px-8">
+                        <div className="flex flex-col items-center justify-center mb-8">
+                            <Loader2 className="h-8 w-8 text-ilinyx-500 animate-spin mb-3" />
+                            <p className="text-sm font-semibold text-slate-500">Conectando con el servidor...</p>
+                            <p className="text-xs text-slate-400 mt-1">Esto puede tardar unos segundos la primera vez</p>
+                        </div>
+                        <div className="space-y-3 max-w-2xl mx-auto">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="flex items-center gap-4 animate-pulse">
+                                    <div className="h-4 bg-slate-200 rounded w-12"></div>
+                                    <div className="h-4 bg-slate-200 rounded w-16"></div>
+                                    <div className="h-4 bg-slate-200 rounded w-24"></div>
+                                    <div className="h-4 bg-slate-200 rounded flex-1"></div>
+                                    <div className="h-4 bg-slate-200 rounded w-20"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : view === 'list' && (
                     actas.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                             <FileText className="h-12 w-12 mb-3 opacity-30" />

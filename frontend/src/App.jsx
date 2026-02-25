@@ -1,6 +1,7 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { UserProvider, useUser } from './context/UserContext';
+import api from './services/api';
 
 const Login = lazy(() => import('./pages/Login'));
 const DashboardLayout = lazy(() => import('./layouts/DashboardLayout'));
@@ -31,6 +32,11 @@ const RootRedirect = () => {
 };
 
 function App() {
+    // Wakeup ping — despierta el backend (Render free tier se duerme)
+    useEffect(() => {
+        api.get('/actas/reuniones/').catch(() => { });
+    }, []);
+
     return (
         <UserProvider>
             <BrowserRouter>

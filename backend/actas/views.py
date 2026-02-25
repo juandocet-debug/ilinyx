@@ -159,3 +159,164 @@ def acta_comments(request, acta_id):
     return Response([])
 
 
+# ════════════════════════════════════════════════════════════════
+# ACTAS DE REUNIÓN — BD compartida (modelo ligero)
+# ════════════════════════════════════════════════════════════════
+from .models import ActaReunion
+
+
+def _extract_ids(data):
+    """Extrae todos los user_id de asistentes, invitados, firmas, compromisos."""
+    ids = set()
+    for key in ['asistentes', 'ausentes', 'invitados', 'firmas']:
+        for p in (data.get(key) or []):
+            uid = p.get('user_id')
+            if uid:
+                try:
+                    ids.add(int(uid))
+                except (ValueError, TypeError):
+                    pass
+    for c in (data.get('compromisos') or []):
+        uid = c.get('responsable_id')
+        if uid:
+            try:
+                ids.add(int(uid))
+            except (ValueError, TypeError):
+                pass
+    return list(ids)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def reuniones_list(request):
+    user = request.user
+    if request.method == 'GET':
+        actas = ActaReunion.objects.filter(creador_id=user.id)
+        return Response([{'id': a.id, **a.data, 'creador_id': a.creador_id} for a in actas])
+
+    # POST — crear
+    data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+    creador_id = user.id
+    pids = _extract_ids(data)
+    if creador_id not in pids:
+        pids.append(creador_id)
+    acta = ActaReunion.objects.create(data=data, creador_id=creador_id, participantes_ids=pids)
+    return Response({'id': acta.id, **acta.data, 'creador_id': acta.creador_id}, status=201)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def reuniones_detail(request, pk):
+    try:
+        acta = ActaReunion.objects.get(pk=pk)
+    except ActaReunion.DoesNotExist:
+        return Response({'detail': 'No encontrada'}, status=404)
+
+    user = request.user
+
+    if request.method == 'GET':
+        return Response({'id': acta.id, **acta.data, 'creador_id': acta.creador_id})
+
+    if request.method == 'DELETE':
+        if acta.creador_id != user.id:
+            return Response({'detail': 'Solo el creador puede eliminar'}, status=403)
+        acta.delete()
+        return Response(status=204)
+
+    # PUT
+    data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+    acta.data = data
+    acta.participantes_ids = _extract_ids(data)
+    if acta.creador_id and acta.creador_id not in acta.participantes_ids:
+        acta.participantes_ids.append(acta.creador_id)
+    acta.save()
+    return Response({'id': acta.id, **acta.data, 'creador_id': acta.creador_id})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def reuniones_mis(request):
+    """Actas donde yo aparezco como participante."""
+    user = request.user
+    uid = user.id
+    user_name = f'{user.first_name} {user.last_name}'.strip().lower()
+
+    from django.db.models import Q
+    actas = ActaReunion.objects.filter(
+        Q(participantes_ids__contains=[uid]) |
+        Q(participantes_ids__contains=[str(uid)]) |
+        Q(creador_id=uid)
+    ).distinct()
+
+    # Fallback: búsqueda por nombre si JSON no matchea
+    if not actas.exists() and user_name:
+        all_actas = ActaReunion.objects.all()
+        ids = []
+        for a in all_actas:
+            d = a.data or {}
+            for key in ['asistentes', 'ausentes', 'invitados', 'firmas']:
+                for p in (d.get(key) or []):
+                    p_uid = p.get('user_id')
+                    p_name = (p.get('nombre') or '').lower()
+                    if (p_uid and str(p_uid) == str(uid)) or (user_name and user_name in p_name):
+                        ids.append(a.id)
+                        break
+                else:
+                    continue
+                break
+        if ids:
+            actas = ActaReunion.objects.filter(id__in=ids)
+
+    return Response([{'id': a.id, **a.data, 'creador_id': a.creador_id} for a in actas])
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reuniones_firmar(request, pk):
+    try:
+        acta = ActaReunion.objects.get(pk=pk)
+    except ActaReunion.DoesNotExist:
+        return Response({'detail': 'No encontrada'}, status=404)
+
+    user = request.user
+    name = f'{user.first_name} {user.last_name}'.strip() or user.username
+    data = acta.data or {}
+    firmas = data.get('firmas') or []
+
+    if any(f.get('user_id') == user.id for f in firmas):
+        return Response({'detail': 'Ya firmaste'}, status=400)
+
+    firmas.append({
+        'nombre': name,
+        'firma': request.data.get('firma', name),
+        'user_id': user.id,
+        'fecha': request.data.get('fecha', ''),
+    })
+    data['firmas'] = firmas
+    acta.data = data
+    acta.save()
+    return Response({'id': acta.id, **acta.data})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reuniones_comentar(request, pk):
+    try:
+        acta = ActaReunion.objects.get(pk=pk)
+    except ActaReunion.DoesNotExist:
+        return Response({'detail': 'No encontrada'}, status=404)
+
+    user = request.user
+    name = f'{user.first_name} {user.last_name}'.strip() or user.username
+    data = acta.data or {}
+    comentarios = data.get('comentarios') or []
+    comentarios.append({
+        'user_id': user.id, 'user_name': name,
+        'user_role': getattr(user, 'role', ''),
+        'text': request.data.get('text', ''),
+        'created_at': request.data.get('created_at', ''),
+    })
+    data['comentarios'] = comentarios
+    acta.data = data
+    acta.save()
+    return Response({'success': True}, status=201)

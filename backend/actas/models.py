@@ -78,3 +78,15 @@ class Acta(models.Model):
     def __str__(self):
         group_name = self.group.name if self.group else "Sin cohorte"
         return f"Acta — {group_name} — {self.date}"
+
+
+class ActaReunion(models.Model):
+    """Acta de Reunión — todo el formulario se almacena como un solo JSON."""
+    data = models.JSONField(default=dict, blank=True)
+    creador_id = models.IntegerField(null=True, blank=True)
+    participantes_ids = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']

@@ -53,18 +53,25 @@ export const createGrupo = data => api.post('/grupos/', data);
 export const deleteGrupo = id => api.delete(`/grupos/${id}/`);
 
 // Usuarios de AGON — vía proxy seguro de ILINYX (server-to-server con API key)
-// El browser solo envía su JWT de ILINYX, la API key de AGON nunca sale del servidor
 export const getTeachers = () => agonApi.get('/users/?role=TEACHER');
 export const searchUsers = (q) => api.get(`/actas/usuarios/buscar/?q=${encodeURIComponent(q)}`);
 export const getMe = () => agonApi.get('/users/me/');
 
-// Clases de AGON — para importar estudiantes masivamente en actas
+// Clases de AGON
 export const getAgonCourses = () => api.get('/actas/clases-agon/');
 
-// Comentarios de actas
+// Comentarios de actas (legacy)
 export const getComments = (actaId) => api.get(`/actas/comentarios/${actaId}/`);
 export const postComment = (actaId, text) => api.post(`/actas/comentarios/${actaId}/`, { text, created_at: new Date().toISOString() });
 
+// ── Actas de Reunión — BD compartida ──────────────────────────────────────
+export const getActasReunion = () => api.get('/actas/reuniones/');
+export const createActaReunion = data => api.post('/actas/reuniones/', data);
+export const updateActaReunion = (id, d) => api.put(`/actas/reuniones/${id}/`, d);
+export const deleteActaReunion = id => api.delete(`/actas/reuniones/${id}/`);
+export const getMisActasReunion = () => api.get('/actas/reuniones/mis/');
+export const firmarActaReunion = (id, firma, fecha) => api.post(`/actas/reuniones/${id}/firmar/`, { firma, fecha });
+export const comentarActaReunion = (id, text) => api.post(`/actas/reuniones/${id}/comentar/`, { text, created_at: new Date().toISOString() });
+
 
 export default api;
-

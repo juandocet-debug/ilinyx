@@ -542,6 +542,7 @@ export default function ActasPage() {
     const [misActas, setMisActas] = useState([]);
     const [current, setCurrent] = useState(null);
     const [step, setStep] = useState(0);
+    const [prevView, setPrevView] = useState('list'); // para volver correctamente desde preview
     const [commentText, setCommentText] = useState('');
     const [expandedComments, setExpandedComments] = useState(null);
     const [signingActaId, setSigningActaId] = useState(null);
@@ -730,12 +731,23 @@ export default function ActasPage() {
     // Estudiantes empiezan en "Mis Actas"
     useEffect(() => { if (isStudent && view === 'list') setView('mis'); }, [isStudent]);
 
-    if (view === 'preview' && current) return <PrintView acta={current} onBack={() => setView(isStudent ? 'mis' : 'form')} />;
-    if (view === 'form' && current && !isStudent) return (
-        <FormView acta={current} step={step} setStep={setStep} user={user}
-            onChange={setCurrent} onSave={handleSave}
-            onPreview={() => setView('preview')} onBack={() => setView('list')} />
-    );
+    if (view === 'preview' && current) return <PrintView acta={current} onBack={() => setView(prevView)} />;
+    if (view === 'form' && current && !isStudent) {
+        // Solo el creador puede editar
+        const isCreator = current.creador_id && String(current.creador_id) === String(user?.id);
+        const isNew = !actas.find(a => a.id === current.id);
+        if (!isCreator && !isNew) {
+            // No es creador y no es nueva → volver
+            addToast('Solo el creador puede editar esta acta', 'warning');
+            setView(prevView);
+            return null;
+        }
+        return (
+            <FormView acta={current} step={step} setStep={setStep} user={user}
+                onChange={setCurrent} onSave={handleSave}
+                onPreview={() => { setPrevView('form'); setView('preview'); }} onBack={() => setView('list')} />
+        );
+    }
 
     // ── LIST / MIS ACTAS VIEW ──
     return (<>
@@ -862,9 +874,13 @@ export default function ActasPage() {
                                                 })()}
                                             </td>
                                             <td className="px-4 py-3 flex items-center gap-2">
-                                                <button onClick={() => handleEdit(a)} className="p-2 rounded-lg bg-ilinyx-50 text-ilinyx-600 hover:bg-ilinyx-100 transition-colors" title="Editar"><PenLine className="h-4 w-4" /></button>
-                                                <button onClick={() => { setCurrent({ ...a }); setView('preview'); }} className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors" title="Imprimir"><Printer className="h-4 w-4" /></button>
-                                                <button onClick={() => handleDelete(a.id)} className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
+                                                {String(a.creador_id) === String(user?.id) && (
+                                                    <button onClick={() => handleEdit(a)} className="p-2 rounded-lg bg-ilinyx-50 text-ilinyx-600 hover:bg-ilinyx-100 transition-colors" title="Editar"><PenLine className="h-4 w-4" /></button>
+                                                )}
+                                                <button onClick={() => { setCurrent({ ...a }); setPrevView('list'); setView('preview'); }} className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors" title="Imprimir"><Printer className="h-4 w-4" /></button>
+                                                {String(a.creador_id) === String(user?.id) && (
+                                                    <button onClick={() => handleDelete(a.id)} className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -914,7 +930,7 @@ export default function ActasPage() {
                                                         <span className="absolute -top-1 -right-1 bg-ilinyx-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{comments.length}</span>
                                                     )}
                                                 </button>
-                                                <button onClick={() => { setCurrent({ ...a }); setView('preview'); }}
+                                                <button onClick={() => { setCurrent({ ...a }); setPrevView('mis'); setView('preview'); }}
                                                     className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors" title="Ver acta">
                                                     <Eye className="h-4 w-4" />
                                                 </button>

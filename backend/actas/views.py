@@ -227,9 +227,9 @@ def reuniones_detail(request, pk):
 
     if request.method == 'DELETE':
         is_creator = str(acta.creador_id) == str(user.id) if acta.creador_id else False
-        is_staff = getattr(user, 'role', '') in ('ADMIN', 'TEACHER')
-        if not is_creator and not is_staff:
-            return Response({'detail': f'Solo el creador puede eliminar (creador={acta.creador_id}, tu={user.id})'}, status=403)
+        is_admin = getattr(user, 'role', '') == 'ADMIN'
+        if not is_creator and not is_admin:
+            return Response({'detail': 'Solo el creador puede eliminar esta acta'}, status=403)
         acta.delete()
         return Response(status=204)
 

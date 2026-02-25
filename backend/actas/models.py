@@ -129,11 +129,20 @@ class ActaReunion(models.Model):
             for person in (lista or []):
                 uid = person.get('user_id')
                 if uid:
-                    ids.add(uid)
+                    try:
+                        ids.add(int(uid))
+                    except (ValueError, TypeError):
+                        ids.add(uid)
         for c in (self.compromisos or []):
             uid = c.get('responsable_id')
             if uid:
-                ids.add(uid)
+                try:
+                    ids.add(int(uid))
+                except (ValueError, TypeError):
+                    ids.add(uid)
         if self.creador_id:
-            ids.add(self.creador_id)
+            try:
+                ids.add(int(self.creador_id))
+            except (ValueError, TypeError):
+                ids.add(self.creador_id)
         self.participantes_ids = list(ids)

@@ -116,14 +116,76 @@ def actas_reunion_detail(request, pk):
 @permission_classes([IsAuthenticated])
 def mis_actas_reunion(request):
     """
-    Devuelve actas donde el usuario actual aparece como participante
-    (asistente, invitado, firmante, responsable de compromiso).
+    Devuelve actas donde el usuario actual aparece como participante.
+    Busca por user_id (int y str) y por nombre en todas las listas.
     """
     user = request.user
-    # Buscar actas donde participantes_ids contiene el user.id
-    actas = ActaReunion.objects.filter(participantes_ids__contains=[user.id])
-    serializer = ActaReunionSerializer(actas, many=True)
+    uid = user.id
+    user_name = f'{user.first_name} {user.last_name}'.strip().lower()
+
+    # Intentar búsqueda JSON rápida primero (int y str)
+    from django.db.models import Q
+    qs = ActaReunion.objects.filter(
+        Q(participantes_ids__contains=[uid]) |
+        Q(participantes_ids__contains=[str(uid)]) |
+        Q(creador_id=uid)
+    )
+
+    # Si no encuentro nada con JSON, buscar en las listas manualmente
+    if not qs.exists() and user_name:
+        all_actas = ActaReunion.objects.all()
+        matching_ids = []
+        for acta in all_actas:
+            for lista in [acta.asistentes, acta.ausentes, acta.invitados, acta.firmas]:
+                for person in (lista or []):
+                    p_uid = person.get('user_id')
+                    p_name = (person.get('nombre') or '').lower()
+                    if (p_uid and (p_uid == uid or str(p_uid) == str(uid))) or \
+                       (user_name and user_name in p_name):
+                        matching_ids.append(acta.id)
+                        break
+                else:
+                    continue
+                break
+            else:
+                # Check compromisos
+                for c in (acta.compromisos or []):
+                    r_uid = c.get('responsable_id')
+                    r_name = (c.get('responsable') or '').lower()
+                    if (r_uid and (r_uid == uid or str(r_uid) == str(uid))) or \
+                       (user_name and user_name in r_name):
+                        matching_ids.append(acta.id)
+                        break
+
+        if matching_ids:
+            qs = ActaReunion.objects.filter(id__in=matching_ids)
+
+    serializer = ActaReunionSerializer(qs, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_actas(request):
+    """Debug: muestra qué datos hay en las actas y cómo se ve el user actual."""
+    user = request.user
+    actas = ActaReunion.objects.all()
+    return Response({
+        'user_id': user.id,
+        'user_id_type': type(user.id).__name__,
+        'user_name': f'{user.first_name} {user.last_name}'.strip(),
+        'total_actas': actas.count(),
+        'actas': [{
+            'id': a.id,
+            'numero': a.numero,
+            'creador_id': a.creador_id,
+            'participantes_ids': a.participantes_ids,
+            'asistentes_count': len(a.asistentes or []),
+            'asistentes_user_ids': [p.get('user_id') for p in (a.asistentes or [])],
+            'invitados_user_ids': [p.get('user_id') for p in (a.invitados or [])],
+            'firmas_user_ids': [f.get('user_id') for f in (a.firmas or [])],
+        } for a in actas],
+    })
 
 
 @api_view(['POST'])

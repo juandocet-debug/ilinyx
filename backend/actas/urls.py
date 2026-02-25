@@ -5,6 +5,7 @@ from .views import (
     search_agon_users, fetch_agon_courses,
     actas_reunion_list, actas_reunion_detail,
     mis_actas_reunion, firmar_acta_reunion, comentar_acta_reunion,
+    debug_actas,
 )
 
 router = DefaultRouter()
@@ -18,8 +19,9 @@ urlpatterns = [
 
     # Actas de Reunión — CRUD
     path('reuniones/', actas_reunion_list, name='reuniones-list'),
-    path('reuniones/<int:pk>/', actas_reunion_detail, name='reuniones-detail'),
     path('reuniones/mis/', mis_actas_reunion, name='reuniones-mis'),
+    path('reuniones/debug/', debug_actas, name='reuniones-debug'),
+    path('reuniones/<int:pk>/', actas_reunion_detail, name='reuniones-detail'),
     path('reuniones/<int:pk>/firmar/', firmar_acta_reunion, name='reuniones-firmar'),
     path('reuniones/<int:pk>/comentar/', comentar_acta_reunion, name='reuniones-comentar'),
 

@@ -45,7 +45,7 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
     }, []);
 
     useEffect(() => {
-        if (q.length < 2) { setResults([]); setOpen(false); return; }
+        if (q.length < 2 || q === 'N/A') { setResults([]); setOpen(false); return; }
         const t = setTimeout(async () => {
             setLoading(true);
             try {
@@ -197,7 +197,7 @@ function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow, onImportCourse })
                     <thead className="bg-slate-50">
                         <tr>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-8"></th>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nombres (busca desde AGON)</th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nombre completo</th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cargo / Dependencia</th>
                             <th className="w-10"></th>
                         </tr>
@@ -207,12 +207,12 @@ function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow, onImportCourse })
                             <tr key={i} className="hover:bg-slate-50/50">
                                 <td className="px-2 py-2">
                                     {row.foto
-                                        ? <img src={row.foto} alt="" className="w-8 h-8 rounded-full object-cover border-2 border-white shadow" />
+                                        ? <img src={row.foto} alt="" className="w-9 h-9 rounded-full object-cover border-2 border-white shadow" />
                                         : row.nombre && row.nombre !== 'N/A'
-                                            ? <div className="w-8 h-8 rounded-full bg-ilinyx-100 flex items-center justify-center text-ilinyx-600 font-bold text-[10px]">
+                                            ? <div className="w-9 h-9 rounded-full bg-ilinyx-100 flex items-center justify-center text-ilinyx-600 font-bold text-[10px]">
                                                 {row.nombre.split(' ').map(w => w[0]).slice(0, 2).join('')}
                                             </div>
-                                            : <div className="w-8 h-8 rounded-full bg-slate-100 border border-dashed border-slate-300" />
+                                            : <div className="w-9 h-9 rounded-full bg-slate-100 border border-dashed border-slate-300" />
                                     }
                                 </td>
                                 <td className="px-2 py-2">
@@ -250,7 +250,7 @@ function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow, onImportCourse })
                 </button>
                 {onImportCourse && (
                     <button onClick={onImportCourse} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors px-2 py-1 rounded-lg hover:bg-emerald-50">
-                        <BookOpen className="h-3.5 w-3.5" /> Importar clase de AGON
+                        <Users className="h-3.5 w-3.5" /> Importar grupo o clase
                     </button>
                 )}
             </div>
@@ -543,21 +543,36 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
     const handleCourseImport = (course) => {
         if (!importTarget || !course.students?.length) return;
         const ROLE_ES = { ADMIN: 'Administrador', TEACHER: 'Docente', STUDENT: 'Estudiante' };
-        const newRows = course.students.map(s => ({
-            nombre: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
-            cargo: ROLE_ES[s.role] || s.role || '',
-            email: s.email || '',
-            user_id: s.id,
-            foto: s.photo || '',
-        }));
-        onChange(p => {
-            // Filtrar filas vacías existentes
-            const existing = p[importTarget].filter(r => r.nombre && r.nombre !== 'N/A' && r.nombre.trim() !== '');
-            // Evitar duplicados por user_id
-            const existingIds = new Set(existing.map(r => r.user_id).filter(Boolean));
-            const toAdd = newRows.filter(r => !existingIds.has(r.user_id));
-            return { ...p, [importTarget]: [...existing, ...toAdd] };
-        });
+
+        if (importTarget === 'firmas_import') {
+            // Importar como firmas pendientes
+            const newFirmas = course.students.map(s => ({
+                nombre: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+                firma: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+                user_id: s.id,
+                fecha: new Date().toLocaleDateString('es-ES'),
+            }));
+            onChange(p => {
+                const existingIds = new Set((p.firmas || []).map(f => f.user_id).filter(Boolean));
+                const toAdd = newFirmas.filter(f => !existingIds.has(f.user_id));
+                return { ...p, firmas: [...(p.firmas || []), ...toAdd] };
+            });
+        } else {
+            // Importar como filas de personas
+            const newRows = course.students.map(s => ({
+                nombre: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+                cargo: ROLE_ES[s.role] || s.role || '',
+                email: s.email || '',
+                user_id: s.id,
+                foto: s.photo || '',
+            }));
+            onChange(p => {
+                const existing = p[importTarget].filter(r => r.nombre && r.nombre !== 'N/A' && r.nombre.trim() !== '');
+                const existingIds = new Set(existing.map(r => r.user_id).filter(Boolean));
+                const toAdd = newRows.filter(r => !existingIds.has(r.user_id));
+                return { ...p, [importTarget]: [...existing, ...toAdd] };
+            });
+        }
         setImportTarget(null);
     };
 
@@ -691,7 +706,7 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
                                     <thead className="bg-slate-50">
                                         <tr>
                                             <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Compromiso</th>
-                                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Responsable (desde AGON)</th>
+                                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Responsable</th>
                                             <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>
                                             <th className="w-10"></th>
                                         </tr>
@@ -740,9 +755,12 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
 
                     {step === 3 && <>
                         <Sec num="10" title="Firmas" hint="El firmante puede hacerlo desde 'Mis Actas'">
-                            <div className="flex items-center gap-3 mb-4 p-3 bg-ilinyx-50 rounded-xl border border-ilinyx-100">
+                            <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-ilinyx-50 rounded-xl border border-ilinyx-100">
                                 <button onClick={addMySig} className="inline-flex items-center gap-2 bg-ilinyx-700 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-ilinyx-800 transition-all shadow">
                                     <UserPlus className="h-4 w-4" /> Agregar mi firma
+                                </button>
+                                <button onClick={() => setImportTarget('firmas_import')} className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-emerald-700 transition-all shadow">
+                                    <Users className="h-4 w-4" /> Importar grupo o clase
                                 </button>
                                 <div>
                                     <p className="text-sm font-semibold text-ilinyx-800">Firmando como: {user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : '—'}</p>

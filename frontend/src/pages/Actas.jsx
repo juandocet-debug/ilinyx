@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Trash2, Printer, ChevronLeft, ChevronRight, FileText,
     UserPlus, Save, Eye, PenLine, Search, Loader2, CheckCircle2, X,
-    BookOpen, MessageCircle, Send, Users
+    BookOpen, MessageCircle, Send, Users, Upload
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { searchUsers, getAgonCourses } from '../services/api';
@@ -196,7 +196,7 @@ function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow, onImportCourse })
                 <table className="w-full">
                     <thead className="bg-slate-50">
                         <tr>
-                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-8"></th>
+                            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider w-12"></th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nombre completo</th>
                             <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cargo / Dependencia</th>
                             <th className="w-10"></th>
@@ -259,6 +259,100 @@ function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow, onImportCourse })
 }
 
 // ══════════════════════════════════════════════════════════════════
+// FIRMA PAD — dibujar con dedo/mouse o subir imagen
+// ══════════════════════════════════════════════════════════════════
+function SignaturePad({ open, onClose, onConfirm, userName }) {
+    const canvasRef = useRef(null);
+    const [drawing, setDrawing] = useState(false);
+    const [hasDrawn, setHasDrawn] = useState(false);
+    const [signatureUrl, setSignatureUrl] = useState(null);
+
+    const getPos = (e) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const touch = e.touches?.[0];
+        return { x: (touch?.clientX || e.clientX) - rect.left, y: (touch?.clientY || e.clientY) - rect.top };
+    };
+
+    const startDraw = (e) => { e.preventDefault(); setDrawing(true); const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    const draw = (e) => { if (!drawing) return; e.preventDefault(); const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke(); setHasDrawn(true); };
+    const stopDraw = () => setDrawing(false);
+
+    const clearCanvas = () => {
+        const ctx = canvasRef.current.getContext('2d');
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        setHasDrawn(false); setSignatureUrl(null);
+    };
+
+    const handleFile = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => { setSignatureUrl(ev.target.result); setHasDrawn(false); };
+        reader.readAsDataURL(file);
+    };
+
+    const handleConfirm = () => {
+        let firmaData;
+        if (signatureUrl) {
+            firmaData = signatureUrl;
+        } else if (hasDrawn && canvasRef.current) {
+            firmaData = canvasRef.current.toDataURL('image/png');
+        } else {
+            firmaData = userName; // Texto como fallback
+        }
+        onConfirm(firmaData);
+    };
+
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                    <h3 className="font-bold text-slate-800">Firmar Acta</h3>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="p-5 space-y-4">
+                    <p className="text-sm text-slate-500">Dibuja tu firma o sube una imagen</p>
+
+                    {!signatureUrl ? (
+                        <div className="relative">
+                            <canvas ref={canvasRef} width={360} height={150}
+                                className="w-full border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 cursor-crosshair touch-none"
+                                onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+                                onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
+                            {!hasDrawn && <p className="absolute inset-0 flex items-center justify-center text-slate-300 text-sm pointer-events-none">Dibuja aquí con el dedo o mouse</p>}
+                        </div>
+                    ) : (
+                        <div className="border-2 border-slate-200 rounded-xl p-3 bg-slate-50 text-center">
+                            <img src={signatureUrl} alt="Firma" className="max-h-[150px] mx-auto" />
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                        <button onClick={clearCanvas} className="text-xs text-slate-500 hover:text-slate-700 font-medium px-3 py-1.5 rounded-lg hover:bg-slate-100">
+                            Limpiar
+                        </button>
+                        <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-ilinyx-600 hover:text-ilinyx-800 px-3 py-1.5 rounded-lg hover:bg-ilinyx-50 cursor-pointer">
+                            <Upload className="h-3.5 w-3.5" /> Subir imagen
+                            <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                        </label>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 px-5 py-4 border-t border-slate-100 bg-slate-50">
+                    <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+                    <button onClick={handleConfirm} disabled={!hasDrawn && !signatureUrl}
+                        className="px-5 py-2 text-sm font-bold bg-ilinyx-700 text-white rounded-xl hover:bg-ilinyx-800 shadow disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                        <PenLine className="h-4 w-4 inline mr-1.5" /> Confirmar firma
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════
 export default function ActasPage() {
@@ -271,6 +365,7 @@ export default function ActasPage() {
     const [step, setStep] = useState(0);
     const [commentText, setCommentText] = useState('');
     const [expandedComments, setExpandedComments] = useState(null);
+    const [signingActaId, setSigningActaId] = useState(null);
 
     // ── Permisos por rol ──
     const isStudent = user?.role === 'STUDENT';
@@ -286,25 +381,28 @@ export default function ActasPage() {
         setView('list');
     };
 
-    // Actas donde el usuario actual aparece
+    // Actas donde el usuario actual aparece (asistentes, invitados, compromisos, firmas)
     const myActas = actas.filter(a => {
         const myName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase() : '';
         const myId = user?.id;
         const inList = (arr) => arr?.some(r => (myId && r.user_id === myId) || (myName && r.nombre?.toLowerCase().includes(myName)));
         return inList(a.asistentes) || inList(a.ausentes) || inList(a.invitados) ||
+            inList(a.firmas) ||
             a.compromisos?.some(c => (myId && c.responsable_id === myId) || c.responsable?.toLowerCase().includes(myName));
     });
 
-    const handleSign = (actaId) => {
+    const handleSign = (actaId) => { setSigningActaId(actaId); };
+    const confirmSign = (firmaData) => {
         const name = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : '';
         if (!name) return;
         const updated = actas.map(a => {
-            if (a.id !== actaId) return a;
+            if (a.id !== signingActaId) return a;
             const alreadySigned = a.firmas?.some(f => f.user_id === user?.id || f.nombre === name);
             if (alreadySigned) return a;
-            return { ...a, firmas: [...(a.firmas || []), { nombre: name, firma: name, user_id: user?.id, fecha: new Date().toLocaleDateString('es-ES') }] };
+            return { ...a, firmas: [...(a.firmas || []), { nombre: name, firma: firmaData, user_id: user?.id, fecha: new Date().toLocaleDateString('es-ES') }] };
         });
         saveAll(updated);
+        setSigningActaId(null);
     };
 
     const handleAddComment = (actaId) => {
@@ -330,7 +428,7 @@ export default function ActasPage() {
     );
 
     // ── LIST / MIS ACTAS VIEW ──
-    return (
+    return (<>
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
@@ -402,10 +500,17 @@ export default function ActasPage() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className="inline-flex items-center gap-1 text-xs font-semibold">
-                                                    <CheckCircle2 className={`h-3.5 w-3.5 ${a.firmas?.length ? 'text-emerald-500' : 'text-slate-300'}`} />
-                                                    {a.firmas?.length || 0} firma(s)
-                                                </span>
+                                                {(() => {
+                                                    const totalP = (a.asistentes?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0) + (a.invitados?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0);
+                                                    const totalF = a.firmas?.length || 0;
+                                                    const done = totalF >= totalP && totalP > 0;
+                                                    return (
+                                                        <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                            <CheckCircle2 className={`h-3.5 w-3.5 ${done ? 'text-emerald-500' : 'text-amber-400'}`} />
+                                                            {totalF}/{totalP}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-4 py-3 flex items-center gap-2">
                                                 <button onClick={() => handleEdit(a)} className="p-2 rounded-lg bg-ilinyx-50 text-ilinyx-600 hover:bg-ilinyx-100 transition-colors" title="Editar"><PenLine className="h-4 w-4" /></button>
@@ -434,13 +539,20 @@ export default function ActasPage() {
                                 const alreadySigned = a.firmas?.some(f => f.user_id === user?.id || f.nombre === myName);
                                 const comments = a.comentarios || [];
                                 const isExpanded = expandedComments === a.id;
+                                const totalPeople = (a.asistentes?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0) + (a.invitados?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0);
+                                const totalFirmas = a.firmas?.length || 0;
                                 return (
                                     <div key={a.id} className="px-6 py-4 hover:bg-ilinyx-50/20 transition-colors">
                                         <div className="flex items-center justify-between">
                                             <div className="space-y-0.5">
                                                 <p className="font-semibold text-slate-800">Acta No. {a.numero || '–'} / {a.total || '–'}</p>
                                                 <p className="text-sm text-slate-500">{a.fecha} · {a.lugar}</p>
-                                                <p className="text-xs text-slate-400">{a.instancias}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs text-slate-400">{a.instancias}</p>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${totalFirmas >= totalPeople && totalPeople > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                        ✍️ {totalFirmas}/{totalPeople} firmas
+                                                    </span>
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <button onClick={() => setExpandedComments(isExpanded ? null : a.id)}
@@ -523,7 +635,15 @@ export default function ActasPage() {
                 )}
             </div>
         </div>
-    );
+
+        {/* Modal de firma */}
+        <SignaturePad
+            open={!!signingActaId}
+            onClose={() => setSigningActaId(null)}
+            onConfirm={confirmSign}
+            userName={user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : ''}
+        />
+    </>);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -536,6 +656,27 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
     });
     const addRow = (field, empty) => onChange(p => ({ ...p, [field]: [...p[field], { ...empty }] }));
     const delRow = (field, idx) => onChange(p => ({ ...p, [field]: p[field].filter((_, i) => i !== idx) }));
+
+    // Auto-sync: al entrar a paso 3 (Firmas), copiar asistentes+invitados como firmas pendientes
+    useEffect(() => {
+        if (step !== 3) return;
+        onChange(p => {
+            const people = [...(p.asistentes || []), ...(p.invitados || [])]
+                .filter(r => r.nombre && r.nombre !== 'N/A' && r.nombre.trim() !== '');
+            const existingIds = new Set((p.firmas || []).map(f => f.user_id || f.nombre).filter(Boolean));
+            const toAdd = people.filter(r => {
+                const key = r.user_id || r.nombre;
+                return key && !existingIds.has(key);
+            }).map(r => ({
+                nombre: r.nombre,
+                firma: '',
+                user_id: r.user_id || null,
+                fecha: '',
+            }));
+            if (toAdd.length === 0) return p;
+            return { ...p, firmas: [...(p.firmas || []), ...toAdd] };
+        });
+    }, [step]);
 
     // Modal para importar clase
     const [importTarget, setImportTarget] = useState(null); // 'asistentes' | 'ausentes' | 'invitados' | null

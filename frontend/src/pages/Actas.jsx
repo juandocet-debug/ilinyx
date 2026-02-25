@@ -1,10 +1,10 @@
 /* eslint-disable */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Trash2, Printer, ChevronLeft, ChevronRight, FileText,
     UserPlus, Save, Eye, PenLine, Search, Loader2, CheckCircle2, X,
-    BookOpen, MessageCircle, Send, Users, Upload
+    BookOpen, MessageCircle, Send, Users, Upload, AlertTriangle, Filter, Calendar
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import {
@@ -16,6 +16,77 @@ import {
 
 const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
 const STEPS = ['Info. General', 'Agenda', 'Resultados', 'Firmas'];
+
+// ══════════════════════════════════════════════════════════════════
+// TOAST NOTIFICATION SYSTEM — estilo AGON (no alert/confirm de JS)
+// ══════════════════════════════════════════════════════════════════
+const TOAST_COLORS = {
+    success: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', icon: '✓', iconBg: 'bg-emerald-500' },
+    error: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', icon: '✕', iconBg: 'bg-red-500' },
+    warning: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', icon: '!', iconBg: 'bg-amber-500' },
+    info: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: 'i', iconBg: 'bg-blue-500' },
+};
+
+function useToast() {
+    const [toasts, setToasts] = useState([]);
+    const addToast = useCallback((message, type = 'info', duration = 3500) => {
+        const id = Date.now() + Math.random();
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
+    }, []);
+    return { toasts, addToast };
+}
+
+function ToastContainer({ toasts }) {
+    if (toasts.length === 0) return null;
+    return (
+        <div className="fixed top-5 right-5 z-[100] space-y-2 max-w-sm">
+            <AnimatePresence>
+                {toasts.map(t => {
+                    const c = TOAST_COLORS[t.type] || TOAST_COLORS.info;
+                    return (
+                        <motion.div key={t.id}
+                            initial={{ opacity: 0, x: 60, scale: 0.95 }}
+                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: 60, scale: 0.95 }}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg ${c.bg} ${c.border}`}>
+                            <span className={`w-6 h-6 rounded-full ${c.iconBg} text-white text-xs font-bold flex items-center justify-center flex-shrink-0`}>{c.icon}</span>
+                            <p className={`text-sm font-semibold ${c.text}`}>{t.message}</p>
+                        </motion.div>
+                    );
+                })}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CONFIRM DIALOG — reemplazo de confirm() de JavaScript
+// ══════════════════════════════════════════════════════════════════
+function ConfirmDialog({ open, title, message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', onConfirm, onCancel, danger = false }) {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                <div className="p-6 text-center space-y-3">
+                    <div className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center ${danger ? 'bg-red-100' : 'bg-amber-100'}`}>
+                        <AlertTriangle className={`h-7 w-7 ${danger ? 'text-red-500' : 'text-amber-500'}`} />
+                    </div>
+                    <h3 className="font-bold text-lg text-slate-800">{title}</h3>
+                    <p className="text-sm text-slate-500">{message}</p>
+                </div>
+                <div className="flex border-t border-slate-100">
+                    <button onClick={onCancel} className="flex-1 py-3.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">{cancelLabel}</button>
+                    <button onClick={onConfirm}
+                        className={`flex-1 py-3.5 text-sm font-bold border-l border-slate-100 transition-colors ${danger ? 'text-red-600 hover:bg-red-50' : 'text-ilinyx-700 hover:bg-ilinyx-50'}`}>
+                        {confirmLabel}
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
 
 const mkActa = () => ({
     id: Date.now(), createdAt: new Date().toISOString(),
@@ -465,6 +536,7 @@ function GestionFirmaModal({ firmaActual, onSave, onDelete, onClose }) {
 // ══════════════════════════════════════════════════════════════════
 export default function ActasPage() {
     const { user } = useUser();
+    const { toasts, addToast } = useToast();
     const [view, setView] = useState('list'); // 'list' | 'form' | 'preview' | 'mis'
     const [actas, setActas] = useState([]);
     const [misActas, setMisActas] = useState([]);
@@ -476,6 +548,16 @@ export default function ActasPage() {
     const [loading, setLoading] = useState(true);
     const [firmaPersonal, setFirmaPersonal] = useState(null);
     const [showGestionFirma, setShowGestionFirma] = useState(false);
+
+    // ── Confirm dialog state ──
+    const [confirmDlg, setConfirmDlg] = useState({ open: false, title: '', message: '', danger: false, onConfirm: null });
+    const showConfirm = (title, message, onConfirm, danger = false) => setConfirmDlg({ open: true, title, message, danger, onConfirm });
+    const closeConfirm = () => setConfirmDlg(c => ({ ...c, open: false }));
+
+    // ── Filtros Mis Actas ──
+    const [misFilter, setMisFilter] = useState('todas'); // 'todas' | 'pendientes' | 'firmadas'
+    const [misYear, setMisYear] = useState('');
+    const [misSearch, setMisSearch] = useState('');
 
     // ── Permisos por rol ──
     const isStudent = user?.role === 'STUDENT';
@@ -503,27 +585,80 @@ export default function ActasPage() {
 
     const handleNew = () => { if (isStudent) return; setCurrent(mkActa()); setStep(0); setView('form'); };
     const handleEdit = (a) => { if (isStudent) return; setCurrent({ ...a }); setStep(0); setView('form'); };
-    const handleDelete = async (id) => {
+    const handleDelete = (id) => {
         if (isStudent) return;
-        if (!confirm('¿Eliminar esta acta?')) return;
-        try { await deleteActaReunion(id); } catch { }
-        loadActas();
+        showConfirm(
+            'Eliminar Acta',
+            '¿Estás seguro de que deseas eliminar esta acta? Esta acción no se puede deshacer.',
+            async () => {
+                closeConfirm();
+                try {
+                    await deleteActaReunion(id);
+                    addToast('Acta eliminada correctamente', 'success');
+                } catch (err) {
+                    console.error('Error deleting:', err);
+                    addToast('No se pudo eliminar el acta', 'error');
+                }
+                loadActas();
+            },
+            true
+        );
     };
     const handleSave = async () => {
         if (!current) return;
         try {
             if (current.id && actas.find(a => a.id === current.id)) {
                 await updateActaReunion(current.id, current);
+                addToast('Acta actualizada correctamente', 'success');
             } else {
                 await createActaReunion(current);
+                addToast('Acta creada correctamente', 'success');
             }
-        } catch (err) { console.error('Error saving acta:', err); }
+        } catch (err) {
+            console.error('Error saving acta:', err);
+            addToast('Error al guardar el acta', 'error');
+        }
         loadActas();
         setView('list');
     };
 
-    // Actas donde el usuario actual aparece — ahora viene del backend
-    const myActas = misActas;
+    // Actas donde el usuario actual aparece — filtradas
+    const myActas = useMemo(() => {
+        let list = misActas;
+        const uid = user?.id;
+
+        // Filtro firma
+        if (misFilter === 'pendientes') {
+            list = list.filter(a => {
+                const entry = a.firmas?.find(f => f.user_id && (f.user_id === uid || String(f.user_id) === String(uid)));
+                return !entry?.firmado;
+            });
+        } else if (misFilter === 'firmadas') {
+            list = list.filter(a => {
+                const entry = a.firmas?.find(f => f.user_id && (f.user_id === uid || String(f.user_id) === String(uid)));
+                return entry?.firmado === true;
+            });
+        }
+
+        // Filtro año
+        if (misYear) {
+            list = list.filter(a => (a.fecha || '').includes(misYear));
+        }
+
+        // Búsqueda texto
+        if (misSearch.trim()) {
+            const q = misSearch.toLowerCase();
+            list = list.filter(a =>
+                (a.numero || '').toLowerCase().includes(q) ||
+                (a.lugar || '').toLowerCase().includes(q) ||
+                (a.instancias || '').toLowerCase().includes(q) ||
+                (a.orden_dia || '').toLowerCase().includes(q) ||
+                (a.desarrollo || '').toLowerCase().includes(q)
+            );
+        }
+
+        return list;
+    }, [misActas, misFilter, misYear, misSearch, user]);
 
     const handleSign = (actaId) => {
         if (firmaPersonal) {
@@ -531,7 +666,11 @@ export default function ActasPage() {
             (async () => {
                 try {
                     await firmarActaReunion(actaId, firmaPersonal, new Date().toLocaleDateString('es-ES'));
-                } catch (err) { console.error('Error signing:', err); }
+                    addToast('Acta firmada correctamente ✍️', 'success');
+                } catch (err) {
+                    const msg = err.response?.data?.detail || 'Error al firmar';
+                    addToast(msg, 'error');
+                }
                 loadActas();
             })();
         } else {
@@ -539,14 +678,19 @@ export default function ActasPage() {
             setSigningActaId(actaId);
         }
     };
-    const confirmSign = async (firmaData) => {
+    const confirmSignFn = async (firmaData) => {
         if (!signingActaId) return;
         try {
             // Guardar firma personal para futuras veces
             await saveFirmaUsuario(firmaData);
             setFirmaPersonal(firmaData);
+            addToast('Firma personal guardada ✓', 'success');
             await firmarActaReunion(signingActaId, firmaData, new Date().toLocaleDateString('es-ES'));
-        } catch (err) { console.error('Error signing:', err); }
+            addToast('Acta firmada correctamente ✍️', 'success');
+        } catch (err) {
+            const msg = err.response?.data?.detail || 'Error al firmar';
+            addToast(msg, 'error');
+        }
         loadActas();
         setSigningActaId(null);
     };
@@ -555,10 +699,32 @@ export default function ActasPage() {
         if (!commentText.trim()) return;
         try {
             await comentarActaReunion(actaId, commentText.trim());
-        } catch (err) { console.error('Error commenting:', err); }
+            addToast('Comentario agregado', 'info');
+        } catch (err) {
+            addToast('Error al agregar comentario', 'error');
+        }
         setCommentText('');
         loadActas();
     };
+
+    // Años disponibles en mis actas
+    const availableYears = useMemo(() => {
+        const years = new Set();
+        misActas.forEach(a => {
+            const m = (a.fecha || '').match(/(\d{4})/);
+            if (m) years.add(m[1]);
+        });
+        return [...years].sort().reverse();
+    }, [misActas]);
+
+    // Conteo para badges de filtros
+    const pendingCount = useMemo(() => {
+        const uid = user?.id;
+        return misActas.filter(a => {
+            const entry = a.firmas?.find(f => f.user_id && (f.user_id === uid || String(f.user_id) === String(uid)));
+            return !entry?.firmado;
+        }).length;
+    }, [misActas, user]);
 
     // Estudiantes empiezan en "Mis Actas"
     useEffect(() => { if (isStudent && view === 'list') setView('mis'); }, [isStudent]);
@@ -572,6 +738,8 @@ export default function ActasPage() {
 
     // ── LIST / MIS ACTAS VIEW ──
     return (<>
+        <ToastContainer toasts={toasts} />
+        <ConfirmDialog {...confirmDlg} onCancel={closeConfirm} />
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
@@ -605,6 +773,36 @@ export default function ActasPage() {
                 </button>
             </div>
 
+            {/* Filtros Mis Actas */}
+            {view === 'mis' && (
+                <div className="flex flex-wrap items-center gap-2">
+                    {[{ key: 'todas', label: 'Todas' }, { key: 'pendientes', label: 'Por firmar', badge: pendingCount }, { key: 'firmadas', label: 'Firmadas' }].map(f => (
+                        <button key={f.key} onClick={() => setMisFilter(f.key)}
+                            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${misFilter === f.key
+                                    ? 'bg-ilinyx-700 text-white border-ilinyx-700 shadow-sm'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:border-ilinyx-300 hover:text-ilinyx-700'
+                                }`}>
+                            {f.label}
+                            {f.badge > 0 && <span className={`ml-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${misFilter === f.key ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'}`}>{f.badge}</span>}
+                        </button>
+                    ))}
+                    <div className="relative">
+                        <select value={misYear} onChange={e => setMisYear(e.target.value)}
+                            className="appearance-none pl-7 pr-6 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-ilinyx-400/20 focus:border-ilinyx-500 cursor-pointer">
+                            <option value="">Todos los años</option>
+                            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                        <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    </div>
+                    <div className="relative flex-1 min-w-[200px] max-w-xs">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <input value={misSearch} onChange={e => setMisSearch(e.target.value)}
+                            placeholder="Buscar por lugar, instancia, contenido..."
+                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-ilinyx-400/20 focus:border-ilinyx-500" />
+                        {misSearch && <button onClick={() => setMisSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="h-3 w-3 text-slate-400" /></button>}
+                    </div>
+                </div>
+            )}
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 {view === 'list' && (
@@ -792,7 +990,7 @@ export default function ActasPage() {
         <SignaturePad
             open={!!signingActaId}
             onClose={() => setSigningActaId(null)}
-            onConfirm={confirmSign}
+            onConfirm={confirmSignFn}
             userName={user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : ''}
         />
 
@@ -804,11 +1002,16 @@ export default function ActasPage() {
                     try {
                         await saveFirmaUsuario(data);
                         setFirmaPersonal(data);
-                    } catch (err) { console.error('Error saving firma:', err); }
+                        addToast('Firma personal guardada correctamente ✍️', 'success');
+                    } catch (err) {
+                        console.error('Error saving firma:', err);
+                        addToast('Error al guardar la firma', 'error');
+                    }
                     setShowGestionFirma(false);
                 }}
                 onDelete={async () => {
                     setFirmaPersonal(null);
+                    addToast('Firma eliminada', 'warning');
                     setShowGestionFirma(false);
                 }}
                 onClose={() => setShowGestionFirma(false)}

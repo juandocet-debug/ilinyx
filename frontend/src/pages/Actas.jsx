@@ -1395,22 +1395,33 @@ function PrintView({ acta, onBack }) {
         return [...existingFirmas, ...toAdd];
     }, [acta]);
 
+    // Estimate total pages
+    const actaRef = useRef(null);
+    const [totalPages, setTotalPages] = useState(1);
+    useEffect(() => {
+        const calc = () => {
+            if (!actaRef.current) return;
+            // Letter page height ~279mm, minus 3cm margins = ~249mm ≈ 940px at 96dpi
+            const h = actaRef.current.scrollHeight;
+            setTotalPages(Math.max(1, Math.ceil(h / 880)));
+        };
+        calc();
+        window.addEventListener('resize', calc);
+        return () => window.removeEventListener('resize', calc);
+    }, [acta, mergedFirmas]);
+
     return (
         <div>
             <style>{`
                 @media print {
-                    /* Reset everything */
+                    /* Reset root */
                     html, body, #root { margin: 0 !important; padding: 0 !important; width: 100% !important; }
                     /* Hide sidebar, topbar, nav, buttons */
                     nav, aside, header, footer, .no-print,
-                    [class*="sidebar"], [class*="Sidebar"],
-                    [class*="md\\:ml-"], [class*="sticky"] { display: none !important; }
-                    /* Force all layout wrappers to full width, no offset */
-                    body *, #root * {
-                        margin-left: 0 !important;
-                    }
+                    [class*="sidebar"], [class*="Sidebar"] { display: none !important; }
+                    /* Force layout wrappers to full width */
                     .flex.min-h-screen { display: block !important; }
-                    .flex.min-h-screen > * { margin-left: 0 !important; width: 100% !important; }
+                    .flex.min-h-screen > div { margin-left: 0 !important; width: 100% !important; }
                     main, [class*="flex-1"] { padding: 0 !important; margin: 0 !important; width: 100% !important; }
                     /* The acta itself */
                     #print-acta {
@@ -1438,6 +1449,9 @@ function PrintView({ acta, onBack }) {
                 #print-acta .sec { background: #d9d9d9; font-weight: bold; padding: 4px 6px; border: 1px solid #000; margin-top: 6px; }
                 #print-acta .hdr { background: #d9d9d9; font-weight: bold; }
                 #print-acta .header-table td { border: 1px solid #000; }
+                #print-acta .header-table .meta-row td {
+                    background: #dbe5f1; font-size: 11px; font-weight: bold; padding: 5px 10px;
+                }
                 #print-acta .page-header-wrap { border: none; }
                 #print-acta .page-header-wrap > thead > tr > td { border: none; padding: 0; }
                 #print-acta .page-header-wrap > tbody > tr > td { border: none; padding: 0; }
@@ -1452,32 +1466,30 @@ function PrintView({ acta, onBack }) {
                 <span className="text-slate-400 text-xs">Ctrl+P → Guardar como PDF</span>
             </div>
 
-            <div id="print-acta" className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-4xl mx-auto">
+            <div id="print-acta" ref={actaRef} className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-4xl mx-auto">
                 {/* Wrapping table for header repetition on each printed page */}
                 <table className="page-header-wrap">
                     <thead>
                         <tr><td>
                             {/* ══ ENCABEZADO INSTITUCIONAL ══ */}
-                            <table className="header-table" style={{ marginBottom: 4 }}><tbody>
+                            <table className="header-table" style={{ marginBottom: 0 }}><tbody>
                                 <tr>
-                                    <td rowSpan={3} style={{ width: '25%', textAlign: 'center', verticalAlign: 'middle' }}>
-                                        <img src={UPN_LOGO} alt="UPN" style={{ height: 65, objectFit: 'contain', display: 'block', margin: '4px auto' }} />
+                                    <td rowSpan={2} style={{ width: '22%', textAlign: 'center', verticalAlign: 'middle', padding: '8px' }}>
+                                        <img src={UPN_LOGO} alt="UPN" style={{ height: 60, objectFit: 'contain' }} />
                                     </td>
-                                    <td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 13 }}>FORMATO</td>
+                                    <td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 14, padding: '8px' }}>FORMATO</td>
                                 </tr>
-                                <tr><td style={{ textAlign: 'center', fontWeight: 'bold' }}>ACTA DE REUNIÓN / RESUMEN DE REUNIÓN</td></tr>
-                                <tr><td>
-                                    <table style={{ border: 'none' }}><tbody>
-                                        <tr>
-                                            <td style={{ border: 'none', borderRight: '1px solid #000', fontSize: 10, textAlign: 'center' }}>Código: FOR023GDC</td>
-                                            <td style={{ border: 'none', fontSize: 10, textAlign: 'center' }}>Versión: 03</td>
-                                        </tr>
-                                        <tr>
-                                            <td style={{ border: 'none', borderRight: '1px solid #000', fontSize: 10, textAlign: 'center' }}>Fecha Aprobación: 22-03-2012</td>
-                                            <td style={{ border: 'none', fontSize: 10, textAlign: 'center' }}>Página 1</td>
-                                        </tr>
-                                    </tbody></table>
-                                </td></tr>
+                                <tr>
+                                    <td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 12, padding: '8px' }}>ACTA DE REUNIÓN / RESUMEN DE REUNIÓN</td>
+                                </tr>
+                                <tr className="meta-row">
+                                    <td style={{ textAlign: 'center' }}>Código: FOR023GDC</td>
+                                    <td style={{ textAlign: 'center' }}>Versión: 03</td>
+                                </tr>
+                                <tr className="meta-row">
+                                    <td style={{ textAlign: 'center' }}>Fecha de Aprobación: 22-03-2012</td>
+                                    <td style={{ textAlign: 'center' }}>Página 1 de {totalPages}</td>
+                                </tr>
                             </tbody></table>
                         </td></tr>
                     </thead>

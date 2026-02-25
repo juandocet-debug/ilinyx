@@ -1399,13 +1399,20 @@ function PrintView({ acta, onBack }) {
         <div>
             <style>{`
                 @media print {
-                    /* Hide everything except the acta */
-                    body > *:not(#root) { display: none !important; }
-                    nav, aside, header, .no-print,
-                    [class*="sidebar"], [class*="Sidebar"] { display: none !important; }
-                    /* The main layout wrapper should not offset */
-                    .flex.min-h-screen > aside { display: none !important; }
-                    .flex.min-h-screen > div { margin-left: 0 !important; }
+                    /* Reset everything */
+                    html, body, #root { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+                    /* Hide sidebar, topbar, nav, buttons */
+                    nav, aside, header, footer, .no-print,
+                    [class*="sidebar"], [class*="Sidebar"],
+                    [class*="md\\:ml-"], [class*="sticky"] { display: none !important; }
+                    /* Force all layout wrappers to full width, no offset */
+                    body *, #root * {
+                        margin-left: 0 !important;
+                    }
+                    .flex.min-h-screen { display: block !important; }
+                    .flex.min-h-screen > * { margin-left: 0 !important; width: 100% !important; }
+                    main, [class*="flex-1"] { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+                    /* The acta itself */
                     #print-acta {
                         width: 100% !important;
                         max-width: none !important;
@@ -1414,8 +1421,9 @@ function PrintView({ acta, onBack }) {
                         border: none !important;
                         box-shadow: none !important;
                         border-radius: 0 !important;
+                        background: white !important;
                     }
-                    @page { size: letter; margin: 1.2cm 1.5cm; }
+                    @page { size: letter; margin: 1.5cm; }
                     /* Repeat header on each page */
                     #print-acta .page-header-wrap thead { display: table-header-group; }
                     #print-acta .page-header-wrap tbody { display: table-row-group; }

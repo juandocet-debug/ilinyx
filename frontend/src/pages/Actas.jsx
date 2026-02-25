@@ -597,7 +597,8 @@ export default function ActasPage() {
                     addToast('Acta eliminada correctamente', 'success');
                 } catch (err) {
                     console.error('Error deleting:', err);
-                    addToast('No se pudo eliminar el acta', 'error');
+                    const msg = err.response?.data?.detail || 'No se pudo eliminar el acta';
+                    addToast(msg, 'error');
                 }
                 loadActas();
             },
@@ -779,8 +780,8 @@ export default function ActasPage() {
                     {[{ key: 'todas', label: 'Todas' }, { key: 'pendientes', label: 'Por firmar', badge: pendingCount }, { key: 'firmadas', label: 'Firmadas' }].map(f => (
                         <button key={f.key} onClick={() => setMisFilter(f.key)}
                             className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${misFilter === f.key
-                                    ? 'bg-ilinyx-700 text-white border-ilinyx-700 shadow-sm'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:border-ilinyx-300 hover:text-ilinyx-700'
+                                ? 'bg-ilinyx-700 text-white border-ilinyx-700 shadow-sm'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-ilinyx-300 hover:text-ilinyx-700'
                                 }`}>
                             {f.label}
                             {f.badge > 0 && <span className={`ml-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${misFilter === f.key ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'}`}>{f.badge}</span>}

@@ -1376,14 +1376,45 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
 // PRINT VIEW
 // ══════════════════════════════════════════════════════════════════
 function PrintView({ acta, onBack }) {
+    // Auto-merge: asegurar que firmas incluya todos los asistentes + invitados
+    const mergedFirmas = useMemo(() => {
+        const people = [...(acta.asistentes || []), ...(acta.invitados || [])]
+            .filter(r => r.nombre && r.nombre !== 'N/A' && r.nombre.trim() !== '');
+        const existingFirmas = acta.firmas || [];
+        const existingKeys = new Set(existingFirmas.map(f => f.user_id || f.nombre).filter(Boolean));
+        const toAdd = people.filter(r => {
+            const key = r.user_id || r.nombre;
+            return key && !existingKeys.has(key);
+        }).map(r => ({
+            nombre: r.nombre,
+            firma: '',
+            user_id: r.user_id || null,
+            firmado: false,
+            fecha: '',
+        }));
+        return [...existingFirmas, ...toAdd];
+    }, [acta]);
+
     return (
         <div>
             <style>{`
                 @media print {
-                    body * { visibility: hidden !important; }
-                    #print-acta, #print-acta * { visibility: visible !important; }
-                    #print-acta { position: absolute; left: 0; top: 0; width: 100%; }
-                    .no-print { display: none !important; }
+                    /* Hide everything except the acta */
+                    body > *:not(#root) { display: none !important; }
+                    nav, aside, header, .no-print,
+                    [class*="sidebar"], [class*="Sidebar"] { display: none !important; }
+                    /* The main layout wrapper should not offset */
+                    .flex.min-h-screen > aside { display: none !important; }
+                    .flex.min-h-screen > div { margin-left: 0 !important; }
+                    #print-acta {
+                        width: 100% !important;
+                        max-width: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        border-radius: 0 !important;
+                    }
                     @page { size: letter; margin: 1.2cm 1.5cm; }
                     /* Repeat header on each page */
                     #print-acta .page-header-wrap thead { display: table-header-group; }
@@ -1496,9 +1527,9 @@ function PrintView({ acta, onBack }) {
                             <div className="sec">10. Firmas:</div>
                             <table><thead><tr><th className="hdr">Nombre</th><th className="hdr">Firma</th><th className="hdr" style={{ width: '20%' }}>Fecha</th></tr></thead>
                                 <tbody>
-                                    {(acta.firmas || []).length === 0
+                                    {mergedFirmas.length === 0
                                         ? <tr><td style={{ height: 36 }}></td><td></td><td></td></tr>
-                                        : acta.firmas.map((f, i) => <tr key={i}>
+                                        : mergedFirmas.map((f, i) => <tr key={i}>
                                             <td style={{ height: 50 }}>{f.nombre}</td>
                                             <td>{f.firmado && f.firma && f.firma.startsWith('data:')
                                                 ? <img src={f.firma} alt="Firma" style={{ maxHeight: 40, maxWidth: 140 }} />

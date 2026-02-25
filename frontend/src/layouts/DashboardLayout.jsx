@@ -7,6 +7,8 @@ import {
     LogOut, Menu, X, ChevronRight
 } from 'lucide-react';
 
+const ROLE_ES = { ADMIN: 'Administrador', TEACHER: 'Docente', STUDENT: 'Estudiante' };
+
 const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
 
 const NAV_ITEMS = [
@@ -45,8 +47,8 @@ export default function DashboardLayout() {
                         <h3 className="text-sm font-bold text-white truncate">
                             {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
                         </h3>
-                        <p className="text-[11px] text-ilinyx-300 font-medium capitalize">
-                            {user?.role?.toLowerCase()}
+                        <p className="text-[11px] text-ilinyx-300 font-medium">
+                            {ROLE_ES[user?.role] || user?.role || '—'}
                         </p>
                     </div>
                 </div>
@@ -84,9 +86,9 @@ export default function DashboardLayout() {
                         <p className="text-ilinyx-300 text-[10px] truncate">Gestión de Actas</p>
                     </div>
                     <button onClick={handleLogout}
-                        className="text-ilinyx-300 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-400/10"
-                        title="Cerrar sesión">
+                        className="flex items-center gap-2 w-full mt-3 px-3 py-2.5 rounded-xl text-ilinyx-200 hover:text-red-400 hover:bg-red-400/10 transition-all text-sm font-medium">
                         <LogOut className="h-4 w-4" />
+                        <span>Cerrar sesión</span>
                     </button>
                 </div>
             </div>
@@ -146,7 +148,7 @@ export default function DashboardLayout() {
                                 <p className="text-sm font-semibold text-slate-700">
                                     {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
                                 </p>
-                                <p className="text-xs text-slate-400 capitalize">{user?.role?.toLowerCase()}</p>
+                                <p className="text-xs text-slate-400">{ROLE_ES[user?.role] || user?.role || '—'}</p>
                             </div>
                             {user?.photo ? (
                                 <img src={user.photo} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-white shadow" />

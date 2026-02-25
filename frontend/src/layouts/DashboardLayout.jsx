@@ -4,7 +4,7 @@ import { useUser } from '../context/UserContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, FileSignature, Users2,
-    LogOut, Menu, X, ChevronRight
+    LogOut, Menu, X, ChevronRight, Bell, User
 } from 'lucide-react';
 
 const ROLE_ES = { ADMIN: 'Administrador', TEACHER: 'Docente', STUDENT: 'Estudiante' };
@@ -145,49 +145,56 @@ export default function DashboardLayout() {
                                 <span className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Ilinyx</span>
                             </div>
                         </div>
-                        <div className="relative">
-                            <button onClick={() => setProfileOpen(p => !p)}
-                                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-                                <div className="text-right hidden sm:block">
-                                    <p className="text-sm font-semibold text-slate-700">
-                                        {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
-                                    </p>
-                                    <p className="text-xs text-slate-400">{ROLE_ES[user?.role] || user?.role || '—'}</p>
-                                </div>
-                                {user?.photo ? (
-                                    <img src={user.photo} alt="Profile" className="w-9 h-9 rounded-full object-cover border-2 border-white shadow" />
-                                ) : (
-                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-ilinyx-400 to-ilinyx-600 flex items-center justify-center text-white font-bold text-sm shadow">
-                                        {user?.first_name?.charAt(0) || user?.username?.charAt(0) || 'U'}
-                                    </div>
-                                )}
+                        <div className="flex items-center gap-4">
+                            {/* Campana */}
+                            <button className="relative text-slate-400 hover:text-ilinyx-600 transition-colors p-1">
+                                <Bell className="h-5 w-5" />
                             </button>
-                            {/* Dropdown */}
-                            <AnimatePresence>
-                                {profileOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                                            transition={{ duration: 0.15 }}
-                                            className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden">
-                                            <div className="px-4 py-3 border-b border-slate-100">
-                                                <p className="text-sm font-bold text-slate-800">
-                                                    {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
-                                                </p>
-                                                <p className="text-xs text-slate-400">{user?.email || (ROLE_ES[user?.role] || user?.role)}</p>
-                                            </div>
-                                            <button onClick={() => { setProfileOpen(false); handleLogout(); }}
-                                                className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium">
-                                                <LogOut className="h-4 w-4" />
-                                                Cerrar sesión
-                                            </button>
-                                        </motion.div>
-                                    </>
-                                )}
-                            </AnimatePresence>
+
+                            {/* Separador vertical rojo */}
+                            <div className="w-px h-8 bg-red-400/60"></div>
+
+                            {/* Nombre + Rol */}
+                            <div className="text-right hidden sm:block">
+                                <p className="text-sm font-semibold text-slate-700 leading-tight">
+                                    {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
+                                </p>
+                                <p className="text-xs text-slate-400">{ROLE_ES[user?.role] || user?.role || '—'}</p>
+                            </div>
+
+                            {/* Icono usuario con dropdown */}
+                            <div className="relative">
+                                <button onClick={() => setProfileOpen(p => !p)}
+                                    className="p-1.5 rounded-full hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-600">
+                                    <User className="h-6 w-6" />
+                                </button>
+                                {/* Dropdown */}
+                                <AnimatePresence>
+                                    {profileOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                                                transition={{ duration: 0.15 }}
+                                                className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden">
+                                                <div className="px-4 py-3 border-b border-slate-100">
+                                                    <p className="text-sm font-bold text-slate-800">
+                                                        {user?.first_name ? `${user.first_name} ${user.last_name || ''}` : user?.username}
+                                                    </p>
+                                                    <p className="text-xs text-slate-400">{user?.email || (ROLE_ES[user?.role] || user?.role)}</p>
+                                                </div>
+                                                <button onClick={() => { setProfileOpen(false); handleLogout(); }}
+                                                    className="flex items-center gap-2.5 w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium">
+                                                    <LogOut className="h-4 w-4" />
+                                                    Cerrar sesión
+                                                </button>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     </div>
                 </header>

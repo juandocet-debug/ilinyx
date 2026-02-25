@@ -186,13 +186,21 @@ def _extract_ids(data):
     return list(ids)
 
 
+def _serialize(acta):
+    """Serializa un acta — el id de BD siempre gana sobre el id que pueda existir en data."""
+    d = dict(acta.data or {})
+    d.pop('id', None)
+    d.pop('creador_id', None)
+    return {'id': acta.id, **d, 'creador_id': acta.creador_id}
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def reuniones_list(request):
     user = request.user
     if request.method == 'GET':
         actas = ActaReunion.objects.filter(creador_id=user.id)
-        return Response([{'id': a.id, **a.data, 'creador_id': a.creador_id} for a in actas])
+        return Response([_serialize(a) for a in actas])
 
     # POST — crear
     data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
@@ -201,7 +209,7 @@ def reuniones_list(request):
     if creador_id not in pids:
         pids.append(creador_id)
     acta = ActaReunion.objects.create(data=data, creador_id=creador_id, participantes_ids=pids)
-    return Response({'id': acta.id, **acta.data, 'creador_id': acta.creador_id}, status=201)
+    return Response(_serialize(acta), status=201)
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -215,7 +223,7 @@ def reuniones_detail(request, pk):
     user = request.user
 
     if request.method == 'GET':
-        return Response({'id': acta.id, **acta.data, 'creador_id': acta.creador_id})
+        return Response(_serialize(acta))
 
     if request.method == 'DELETE':
         is_creator = str(acta.creador_id) == str(user.id) if acta.creador_id else False
@@ -232,7 +240,7 @@ def reuniones_detail(request, pk):
     if acta.creador_id and acta.creador_id not in acta.participantes_ids:
         acta.participantes_ids.append(acta.creador_id)
     acta.save()
-    return Response({'id': acta.id, **acta.data, 'creador_id': acta.creador_id})
+    return Response(_serialize(acta))
 
 
 @api_view(['GET'])
@@ -269,7 +277,7 @@ def reuniones_mis(request):
         if ids:
             actas = ActaReunion.objects.filter(id__in=ids)
 
-    return Response([{'id': a.id, **a.data, 'creador_id': a.creador_id} for a in actas])
+    return Response([_serialize(a) for a in actas])
 
 
 @api_view(['POST'])

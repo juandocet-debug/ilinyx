@@ -7,7 +7,11 @@ import {
     BookOpen, MessageCircle, Send, Users, Upload
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
-import { searchUsers, getAgonCourses } from '../services/api';
+import {
+    searchUsers, getAgonCourses,
+    getActasReunion, createActaReunion, updateActaReunion, deleteActaReunion,
+    getMisActasReunion, firmarActaReunion, comentarActaReunion,
+} from '../services/api';
 
 const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
 const STEPS = ['Info. General', 'Agenda', 'Resultados', 'Firmas'];
@@ -358,63 +362,89 @@ function SignaturePad({ open, onClose, onConfirm, userName }) {
 export default function ActasPage() {
     const { user } = useUser();
     const [view, setView] = useState('list'); // 'list' | 'form' | 'preview' | 'mis'
-    const [actas, setActas] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('ilinyx_actas') || '[]'); } catch { return []; }
-    });
+    const [actas, setActas] = useState([]);
+    const [myActas, setMyActas] = useState([]);
     const [current, setCurrent] = useState(null);
     const [step, setStep] = useState(0);
     const [commentText, setCommentText] = useState('');
     const [expandedComments, setExpandedComments] = useState(null);
     const [signingActaId, setSigningActaId] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     // ── Permisos por rol ──
     const isStudent = user?.role === 'STUDENT';
 
-    const saveAll = (list) => { setActas(list); localStorage.setItem('ilinyx_actas', JSON.stringify(list)); };
-    const handleNew = () => { if (isStudent) return; setCurrent(mkActa()); setStep(0); setView('form'); };
-    const handleEdit = (a) => { if (isStudent) return; setCurrent({ ...a }); setStep(0); setView('form'); };
-    const handleDelete = (id) => { if (isStudent) return; if (!confirm('¿Eliminar esta acta?')) return; saveAll(actas.filter(a => a.id !== id)); };
-    const handleSave = () => {
-        if (!current) return;
-        const exists = actas.find(a => a.id === current.id);
-        saveAll(exists ? actas.map(a => a.id === current.id ? current : a) : [...actas, current]);
-        setView('list');
+    // ── Cargar actas desde el backend ──
+    const loadActas = async () => {
+        setLoading(true);
+        try {
+            const [res, misRes] = await Promise.all([
+                getActasReunion().catch(() => ({ data: [] })),
+                getMisActasReunion().catch(() => ({ data: [] })),
+            ]);
+            setActas(res.data || []);
+            setMyActas(misRes.data || []);
+        } catch (e) { console.error('Error cargando actas:', e); }
+        setLoading(false);
     };
 
-    // Actas donde el usuario actual aparece (asistentes, invitados, compromisos, firmas)
-    const myActas = actas.filter(a => {
-        const myName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase() : '';
-        const myId = user?.id;
-        const inList = (arr) => arr?.some(r => (myId && r.user_id === myId) || (myName && r.nombre?.toLowerCase().includes(myName)));
-        return inList(a.asistentes) || inList(a.ausentes) || inList(a.invitados) ||
-            inList(a.firmas) ||
-            a.compromisos?.some(c => (myId && c.responsable_id === myId) || c.responsable?.toLowerCase().includes(myName));
-    });
+    useEffect(() => { loadActas(); }, []);
+
+    const handleNew = () => { if (isStudent) return; setCurrent(mkActa()); setStep(0); setView('form'); };
+    const handleEdit = (a) => { if (isStudent) return; setCurrent({ ...a }); setStep(0); setView('form'); };
+
+    const handleDelete = async (id) => {
+        if (isStudent) return;
+        if (!confirm('¿Eliminar esta acta?')) return;
+        try {
+            await deleteActaReunion(id);
+            await loadActas();
+        } catch (e) { console.error('Error eliminando:', e); alert('Error al eliminar el acta.'); }
+    };
+
+    const handleSave = async () => {
+        if (!current) return;
+        try {
+            if (current.id && typeof current.id === 'number') {
+                // Ya existe en BD → actualizar
+                await updateActaReunion(current.id, current);
+            } else {
+                // Nueva → crear (quitar id temporal)
+                const { id, ...data } = current;
+                await createActaReunion(data);
+            }
+            await loadActas();
+            setView('list');
+        } catch (e) {
+            console.error('Error guardando acta:', e);
+            alert('Error al guardar. Revisa la conexión.');
+        }
+    };
 
     const handleSign = (actaId) => { setSigningActaId(actaId); };
-    const confirmSign = (firmaData) => {
-        const name = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : '';
-        if (!name) return;
-        const updated = actas.map(a => {
-            if (a.id !== signingActaId) return a;
-            const alreadySigned = a.firmas?.some(f => f.user_id === user?.id || f.nombre === name);
-            if (alreadySigned) return a;
-            return { ...a, firmas: [...(a.firmas || []), { nombre: name, firma: firmaData, user_id: user?.id, fecha: new Date().toLocaleDateString('es-ES') }] };
-        });
-        saveAll(updated);
+    const confirmSign = async (firmaData) => {
+        if (!signingActaId) return;
+        try {
+            await firmarActaReunion(signingActaId, firmaData, new Date().toLocaleDateString('es-ES'));
+            await loadActas();
+        } catch (e) {
+            console.error('Error firmando:', e);
+            const msg = e.response?.data?.detail || 'Error al firmar';
+            alert(msg);
+        }
         setSigningActaId(null);
     };
 
-    const handleAddComment = (actaId) => {
+    const handleAddComment = async (actaId) => {
         if (!commentText.trim()) return;
-        const name = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : 'Anónimo';
-        const newComment = {
-            id: Date.now(), user_id: user?.id, user_name: name,
-            user_role: user?.role || '', user_foto: user?.photo || '',
-            text: commentText.trim(), created_at: new Date().toISOString(),
-        };
-        saveAll(actas.map(a => a.id !== actaId ? a : { ...a, comentarios: [...(a.comentarios || []), newComment] }));
-        setCommentText('');
+        try {
+            await comentarActaReunion(actaId, commentText.trim(), new Date().toISOString());
+            await loadActas();
+            setCommentText('');
+        } catch (e) {
+            console.error('Error comentando:', e);
+            alert('Error al enviar comentario');
+        }
     };
 
     // Estudiantes empiezan en "Mis Actas"

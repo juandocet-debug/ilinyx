@@ -61,7 +61,17 @@ export const getMe = () => agonApi.get('/users/me/');
 // Clases de AGON — para importar estudiantes masivamente en actas
 export const getAgonCourses = () => api.get('/actas/clases-agon/');
 
-// Comentarios de actas
+// ── Actas de Reunión — BD compartida ──────────────────────────────────────
+export const getActasReunion = () => api.get('/actas/reuniones/');
+export const createActaReunion = data => api.post('/actas/reuniones/', data);
+export const getActaReunion = id => api.get(`/actas/reuniones/${id}/`);
+export const updateActaReunion = (id, data) => api.put(`/actas/reuniones/${id}/`, data);
+export const deleteActaReunion = id => api.delete(`/actas/reuniones/${id}/`);
+export const getMisActasReunion = () => api.get('/actas/reuniones/mis/');
+export const firmarActaReunion = (id, firmaData, fecha) => api.post(`/actas/reuniones/${id}/firmar/`, { firma: firmaData, fecha });
+export const comentarActaReunion = (id, text, created_at) => api.post(`/actas/reuniones/${id}/comentar/`, { text, created_at });
+
+// Comentarios de actas (legacy)
 export const getComments = (actaId) => api.get(`/actas/comentarios/${actaId}/`);
 export const postComment = (actaId, text) => api.post(`/actas/comentarios/${actaId}/`, { text, created_at: new Date().toISOString() });
 

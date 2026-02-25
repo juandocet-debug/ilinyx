@@ -1382,15 +1382,26 @@ function PrintView({ acta, onBack }) {
                 @media print {
                     body * { visibility: hidden !important; }
                     #print-acta, #print-acta * { visibility: visible !important; }
-                    #print-acta { position: fixed; left: 0; top: 0; width: 100%; }
+                    #print-acta { position: absolute; left: 0; top: 0; width: 100%; }
                     .no-print { display: none !important; }
-                    @page { size: letter; margin: 1.5cm; }
+                    @page { size: letter; margin: 1.2cm 1.5cm; }
+                    /* Repeat header on each page */
+                    #print-acta .page-header-wrap thead { display: table-header-group; }
+                    #print-acta .page-header-wrap tbody { display: table-row-group; }
+                    /* Avoid cutting sections */
+                    #print-acta .sec { page-break-after: avoid; }
+                    #print-acta table { page-break-inside: auto; }
+                    #print-acta tr { page-break-inside: avoid; }
                 }
                 #print-acta { font-family: Arial, sans-serif; font-size: 11px; color: #000; }
                 #print-acta table { border-collapse: collapse; width: 100%; }
                 #print-acta td, #print-acta th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
                 #print-acta .sec { background: #d9d9d9; font-weight: bold; padding: 4px 6px; border: 1px solid #000; margin-top: 6px; }
                 #print-acta .hdr { background: #d9d9d9; font-weight: bold; }
+                #print-acta .header-table td { border: 1px solid #000; }
+                #print-acta .page-header-wrap { border: none; }
+                #print-acta .page-header-wrap > thead > tr > td { border: none; padding: 0; }
+                #print-acta .page-header-wrap > tbody > tr > td { border: none; padding: 0; }
             `}</style>
             <div className="no-print flex items-center gap-3 mb-6">
                 <button onClick={onBack} className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-sm">
@@ -1403,96 +1414,108 @@ function PrintView({ acta, onBack }) {
             </div>
 
             <div id="print-acta" className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-4xl mx-auto">
-                <table><tbody>
-                    <tr>
-                        <td rowSpan={3} style={{ width: '28%', textAlign: 'center' }}>
-                            <img src={UPN_LOGO} alt="UPN" style={{ height: 70, objectFit: 'contain' }} />
-                        </td>
-                        <td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 13 }}>FORMATO</td>
-                    </tr>
-                    <tr><td style={{ textAlign: 'center', fontWeight: 'bold' }}>ACTA DE REUNIÓN / RESUMEN DE REUNIÓN</td></tr>
-                    <tr><td>
-                        <table style={{ border: 'none' }}><tbody>
-                            <tr>
-                                <td style={{ border: 'none', borderRight: '1px solid #000', fontSize: 10, textAlign: 'center' }}>Código: FOR023GDC</td>
-                                <td style={{ border: 'none', fontSize: 10, textAlign: 'center' }}>Versión: 03</td>
-                            </tr>
-                            <tr>
-                                <td style={{ border: 'none', borderRight: '1px solid #000', fontSize: 10, textAlign: 'center' }}>Fecha Aprobación: 22-03-2012</td>
-                                <td style={{ border: 'none', fontSize: 10, textAlign: 'center' }}>Página 1</td>
-                            </tr>
-                        </tbody></table>
-                    </td></tr>
-                </tbody></table>
-
-                <p style={{ textAlign: 'center', fontWeight: 'bold', margin: '8px 0 4px' }}>Marque según corresponda (*):</p>
-                <p style={{ textAlign: 'center', marginBottom: 6 }}>
-                    <span style={{ border: '1px solid #000', padding: '2px 8px', marginRight: 16 }}>{acta.tipo === 'ACTA' ? '✓' : ' '}</span> ACTA DE REUNIÓN &nbsp;&nbsp;
-                    <span style={{ border: '1px solid #000', padding: '2px 8px', marginRight: 16 }}>{acta.tipo === 'RESUMEN' ? '✓' : ' '}</span> RESUMEN DE REUNIÓN
-                </p>
-                <table style={{ marginBottom: 6 }}><tbody>
-                    <tr><td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
-                        Acta / Resumen de Reunión No. {acta.numero || '___'} de {acta.total || '___'}
-                    </td></tr>
-                </tbody></table>
-
-                <div className="sec">1. Información General:</div>
-                <table><tbody>
-                    <tr><td style={{ width: '30%' }}>Fecha</td><td>{acta.fecha}</td><td style={{ width: '15%' }}>Hora inicio:</td><td>{acta.hora_inicio}</td><td style={{ width: '12%' }}>Hora final:</td><td>{acta.hora_final}</td></tr>
-                    <tr><td>Instancias / Dependencias:</td><td colSpan={5}>{acta.instancias}</td></tr>
-                    <tr><td>Lugar:</td><td colSpan={5}>{acta.lugar}</td></tr>
-                </tbody></table>
-
-                {[
-                    { num: '2', title: 'Asistentes', data: acta.asistentes },
-                    { num: '3', title: 'Ausentes', data: acta.ausentes },
-                    { num: '4', title: 'Invitados', data: acta.invitados },
-                ].map(s => (
-                    <div key={s.num}>
-                        <div className="sec">{s.num}. {s.title}:</div>
-                        <table><thead><tr><th className="hdr" style={{ width: '50%' }}>Nombres</th><th className="hdr">Cargo/Dependencia</th></tr></thead>
-                            <tbody>{(s.data || [{ nombre: 'N/A', cargo: '' }]).map((r, i) => <tr key={i}><td>{r.nombre}</td><td>{r.cargo}</td></tr>)}</tbody>
-                        </table>
-                    </div>
-                ))}
-
-                <div className="sec">5. Orden del Día:</div>
-                <table><tbody><tr><td style={{ minHeight: 80, whiteSpace: 'pre-wrap' }}>{acta.orden_dia}</td></tr></tbody></table>
-
-                <div className="sec">6. Desarrollo del Orden del Día:</div>
-                <table><tbody><tr><td style={{ minHeight: 120, whiteSpace: 'pre-wrap' }}>{acta.desarrollo}</td></tr></tbody></table>
-
-                <div className="sec">7. Compromisos:</div>
-                <table><thead><tr><th className="hdr">Compromiso</th><th className="hdr">Responsable</th><th className="hdr">Fecha (dd-mm-aaaa)</th></tr></thead>
-                    <tbody>{acta.compromisos.map((c, i) => <tr key={i}><td>{c.compromiso}</td><td>{c.responsable}</td><td>{c.fecha}</td></tr>)}</tbody>
-                </table>
-
-                <div className="sec">8. Próxima Convocatoria:</div>
-                <table><tbody><tr><td style={{ whiteSpace: 'pre-wrap' }}>{acta.proxima_convocatoria}</td></tr></tbody></table>
-
-                <div className="sec">9. Anexos:</div>
-                <table><tbody><tr><td style={{ whiteSpace: 'pre-wrap' }}>{acta.anexos}</td></tr></tbody></table>
-
-                <div className="sec">10. Firmas:</div>
-                <table><thead><tr><th className="hdr">Nombre</th><th className="hdr">Firma</th><th className="hdr" style={{ width: '20%' }}>Fecha</th></tr></thead>
+                {/* Wrapping table for header repetition on each printed page */}
+                <table className="page-header-wrap">
+                    <thead>
+                        <tr><td>
+                            {/* ══ ENCABEZADO INSTITUCIONAL ══ */}
+                            <table className="header-table" style={{ marginBottom: 4 }}><tbody>
+                                <tr>
+                                    <td rowSpan={3} style={{ width: '25%', textAlign: 'center', verticalAlign: 'middle' }}>
+                                        <img src={UPN_LOGO} alt="UPN" style={{ height: 65, objectFit: 'contain', display: 'block', margin: '4px auto' }} />
+                                    </td>
+                                    <td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 13 }}>FORMATO</td>
+                                </tr>
+                                <tr><td style={{ textAlign: 'center', fontWeight: 'bold' }}>ACTA DE REUNIÓN / RESUMEN DE REUNIÓN</td></tr>
+                                <tr><td>
+                                    <table style={{ border: 'none' }}><tbody>
+                                        <tr>
+                                            <td style={{ border: 'none', borderRight: '1px solid #000', fontSize: 10, textAlign: 'center' }}>Código: FOR023GDC</td>
+                                            <td style={{ border: 'none', fontSize: 10, textAlign: 'center' }}>Versión: 03</td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{ border: 'none', borderRight: '1px solid #000', fontSize: 10, textAlign: 'center' }}>Fecha Aprobación: 22-03-2012</td>
+                                            <td style={{ border: 'none', fontSize: 10, textAlign: 'center' }}>Página 1</td>
+                                        </tr>
+                                    </tbody></table>
+                                </td></tr>
+                            </tbody></table>
+                        </td></tr>
+                    </thead>
                     <tbody>
-                        {(acta.firmas || []).length === 0
-                            ? <tr><td style={{ height: 36 }}></td><td></td><td></td></tr>
-                            : acta.firmas.map((f, i) => <tr key={i}>
-                                <td style={{ height: 50 }}>{f.nombre}</td>
-                                <td>{f.firmado && f.firma && f.firma.startsWith('data:')
-                                    ? <img src={f.firma} alt="Firma" style={{ maxHeight: 40, maxWidth: 140 }} />
-                                    : f.firmado ? f.firma || '✓' : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Pendiente</span>
-                                }</td>
-                                <td>{f.fecha || '—'}</td>
-                            </tr>)
-                        }
+                        <tr><td>
+                            {/* ══ CUERPO DEL ACTA ══ */}
+                            <p style={{ textAlign: 'center', fontWeight: 'bold', margin: '8px 0 4px' }}>Marque según corresponda (*):</p>
+                            <p style={{ textAlign: 'center', marginBottom: 6 }}>
+                                <span style={{ border: '1px solid #000', padding: '2px 8px', marginRight: 16 }}>{acta.tipo === 'ACTA' ? '✓' : ' '}</span> ACTA DE REUNIÓN &nbsp;&nbsp;
+                                <span style={{ border: '1px solid #000', padding: '2px 8px', marginRight: 16 }}>{acta.tipo === 'RESUMEN' ? '✓' : ' '}</span> RESUMEN DE REUNIÓN
+                            </p>
+                            <table style={{ marginBottom: 6 }}><tbody>
+                                <tr><td style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 12 }}>
+                                    Acta / Resumen de Reunión No. {acta.numero || '___'} de {acta.total || '___'}
+                                </td></tr>
+                            </tbody></table>
+
+                            <div className="sec">1. Información General:</div>
+                            <table><tbody>
+                                <tr><td style={{ width: '30%' }}>Fecha</td><td>{acta.fecha}</td><td style={{ width: '15%' }}>Hora inicio:</td><td>{acta.hora_inicio}</td><td style={{ width: '12%' }}>Hora final:</td><td>{acta.hora_final}</td></tr>
+                                <tr><td>Instancias / Dependencias:</td><td colSpan={5}>{acta.instancias}</td></tr>
+                                <tr><td>Lugar:</td><td colSpan={5}>{acta.lugar}</td></tr>
+                            </tbody></table>
+
+                            {[
+                                { num: '2', title: 'Asistentes', data: acta.asistentes },
+                                { num: '3', title: 'Ausentes', data: acta.ausentes },
+                                { num: '4', title: 'Invitados', data: acta.invitados },
+                            ].map(s => (
+                                <div key={s.num}>
+                                    <div className="sec">{s.num}. {s.title}:</div>
+                                    <table><thead><tr><th className="hdr" style={{ width: '50%' }}>Nombres</th><th className="hdr">Cargo/Dependencia</th></tr></thead>
+                                        <tbody>{(s.data || [{ nombre: 'N/A', cargo: '' }]).map((r, i) => <tr key={i}><td>{r.nombre}</td><td>{r.cargo}</td></tr>)}</tbody>
+                                    </table>
+                                </div>
+                            ))}
+
+                            <div className="sec">5. Orden del Día:</div>
+                            <table><tbody><tr><td style={{ minHeight: 80, whiteSpace: 'pre-wrap' }}>{acta.orden_dia}</td></tr></tbody></table>
+
+                            <div className="sec">6. Desarrollo del Orden del Día:</div>
+                            <table><tbody><tr><td style={{ minHeight: 120, whiteSpace: 'pre-wrap' }}>{acta.desarrollo}</td></tr></tbody></table>
+
+                            <div className="sec">7. Compromisos:</div>
+                            <table><thead><tr><th className="hdr">Compromiso</th><th className="hdr">Responsable</th><th className="hdr">Fecha (dd-mm-aaaa)</th></tr></thead>
+                                <tbody>{acta.compromisos.map((c, i) => <tr key={i}><td>{c.compromiso}</td><td>{c.responsable}</td><td>{c.fecha}</td></tr>)}</tbody>
+                            </table>
+
+                            <div className="sec">8. Próxima Convocatoria:</div>
+                            <table><tbody><tr><td style={{ whiteSpace: 'pre-wrap' }}>{acta.proxima_convocatoria}</td></tr></tbody></table>
+
+                            <div className="sec">9. Anexos:</div>
+                            <table><tbody><tr><td style={{ whiteSpace: 'pre-wrap' }}>{acta.anexos}</td></tr></tbody></table>
+
+                            <div className="sec">10. Firmas:</div>
+                            <table><thead><tr><th className="hdr">Nombre</th><th className="hdr">Firma</th><th className="hdr" style={{ width: '20%' }}>Fecha</th></tr></thead>
+                                <tbody>
+                                    {(acta.firmas || []).length === 0
+                                        ? <tr><td style={{ height: 36 }}></td><td></td><td></td></tr>
+                                        : acta.firmas.map((f, i) => <tr key={i}>
+                                            <td style={{ height: 50 }}>{f.nombre}</td>
+                                            <td>{f.firmado && f.firma && f.firma.startsWith('data:')
+                                                ? <img src={f.firma} alt="Firma" style={{ maxHeight: 40, maxWidth: 140 }} />
+                                                : f.firmado ? f.firma || '✓' : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Pendiente</span>
+                                            }</td>
+                                            <td>{f.fecha || '—'}</td>
+                                        </tr>)
+                                    }
+                                </tbody>
+                            </table>
+
+                            <p style={{ marginTop: 12, fontSize: 10 }}>
+                                <b>(*) Acta de Reunión:</b> Reuniones que contemplan elaboración formal de actas. <b>Resumen de Reunión:</b> Se aplica en los demás casos.
+                            </p>
+                        </td></tr>
                     </tbody>
                 </table>
-
-                <p style={{ marginTop: 12, fontSize: 10 }}>
-                    <b>(*) Acta de Reunión:</b> Reuniones que contemplan elaboración formal de actas. <b>Resumen de Reunión:</b> Se aplica en los demás casos.
-                </p>
             </div>
         </div>
     );

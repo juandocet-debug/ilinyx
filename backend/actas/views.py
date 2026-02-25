@@ -91,3 +91,71 @@ def search_agon_users(request):
     except Exception as e:
         return Response({'debug_error': True, 'type': type(e).__name__, 'detail': str(e)[:500], 'target_url': target_url})
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def fetch_agon_courses(request):
+    """
+    Proxy seguro: obtiene la lista de clases de AGON con sus estudiantes.
+    Permite a ILINYX importar una clase completa como asistentes de un acta.
+    """
+    agon_url = getattr(settings, 'AGON_API_URL', None)
+    api_key = getattr(settings, 'ILINYX_API_KEY', None)
+
+    if not agon_url or not api_key:
+        return Response(
+            {'detail': 'Configuración de AGON no encontrada en el servidor.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+
+    target_url = f'{agon_url}/users/courses-for-ilinyx/'
+
+    try:
+        resp = http_requests.get(
+            target_url,
+            headers={'X-Ilinyx-Api-Key': api_key},
+            timeout=15
+        )
+        if resp.status_code != 200:
+            return Response({
+                'debug_error': True,
+                'agon_status': resp.status_code,
+                'agon_response': resp.text[:500],
+            })
+        return Response(resp.json())
+    except http_requests.exceptions.ConnectionError as e:
+        return Response({'detail': f'No se pudo conectar a AGON: {str(e)[:200]}'}, status=502)
+    except http_requests.exceptions.Timeout:
+        return Response({'detail': 'Timeout al conectar con AGON'}, status=504)
+    except Exception as e:
+        return Response({'detail': str(e)[:300]}, status=500)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def acta_comments(request, acta_id):
+    """
+    GET  → Lista comentarios de un acta.
+    POST → Agrega un nuevo comentario (cualquier rol puede comentar).
+    Los comentarios se almacenan como JSON en el campo 'comentarios' del acta localStorage.
+    NOTA: Como las actas actuales se guardan en localStorage del frontend,
+    este endpoint se integra a nivel frontend. Se expone por compatibilidad futura
+    cuando se migre a BD real.
+    """
+    # Placeholder para cuando se migre a BD real
+    if request.method == 'POST':
+        # Por ahora solo valida que el usuario esté autenticado
+        return Response({
+            'success': True,
+            'comment': {
+                'user_id': request.user.id,
+                'user_name': f'{request.user.first_name} {request.user.last_name}'.strip() or request.user.username,
+                'user_role': request.user.role,
+                'text': request.data.get('text', ''),
+                'created_at': request.data.get('created_at', ''),
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    return Response([])
+
+

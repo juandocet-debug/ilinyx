@@ -3,10 +3,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Plus, Trash2, Printer, ChevronLeft, ChevronRight, FileText,
-    UserPlus, Save, Eye, PenLine, Search, Loader2, CheckCircle2, X
+    UserPlus, Save, Eye, PenLine, Search, Loader2, CheckCircle2, X,
+    BookOpen, MessageCircle, Send, Users
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
-import { searchUsers } from '../services/api';
+import { searchUsers, getAgonCourses } from '../services/api';
 
 const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
 const STEPS = ['Info. General', 'Agenda', 'Resultados', 'Firmas'];
@@ -22,6 +23,7 @@ const mkActa = () => ({
     compromisos: [{ compromiso: '', responsable: '', responsable_id: null, fecha: '' }],
     proxima_convocatoria: 'N/A', anexos: 'N/A',
     firmas: [],
+    comentarios: [],
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -106,11 +108,88 @@ function UserAutocomplete({ value, onSelect, onChangeName, placeholder = 'Buscar
     );
 }
 
+// ══════════════════════════════════════════════════════════════════
+// MODAL PARA IMPORTAR CLASE DESDE AGON
+// ══════════════════════════════════════════════════════════════════
+function CourseImportModal({ open, onClose, onImport }) {
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [filter, setFilter] = useState('');
+
+    useEffect(() => {
+        if (!open) return;
+        setLoading(true);
+        getAgonCourses()
+            .then(({ data }) => setCourses(Array.isArray(data) ? data : []))
+            .catch(() => setCourses([]))
+            .finally(() => setLoading(false));
+    }, [open]);
+
+    const filtered = courses.filter(c =>
+        c.name.toLowerCase().includes(filter.toLowerCase()) ||
+        c.code.toLowerCase().includes(filter.toLowerCase()) ||
+        c.teacher_name.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                    <div>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                            <BookOpen className="h-5 w-5 text-ilinyx-600" /> Importar clase desde AGON
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-0.5">Selecciona una clase para agregar todos sus estudiantes</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400"><X className="h-5 w-5" /></button>
+                </div>
+
+                <div className="px-5 py-3 border-b border-slate-50">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input value={filter} onChange={e => setFilter(e.target.value)}
+                            placeholder="Buscar clase por nombre, código o docente..."
+                            className="w-full pl-10 pr-3 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-ilinyx-400/20" />
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-3 py-2">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 text-ilinyx-500 animate-spin" /></div>
+                    ) : filtered.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400 text-sm">
+                            {courses.length === 0 ? 'No se pudieron cargar las clases' : 'No hay clases que coincidan'}
+                        </div>
+                    ) : (
+                        filtered.map(course => (
+                            <button key={course.id} onClick={() => { onImport(course); onClose(); }}
+                                className="w-full text-left px-4 py-3 rounded-xl hover:bg-ilinyx-50 transition-colors mb-1 border border-transparent hover:border-ilinyx-100">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="font-semibold text-slate-800 text-sm">{course.name}</p>
+                                        <p className="text-xs text-slate-500">{course.code} · {course.teacher_name} · {course.year}-{course.period}</p>
+                                    </div>
+                                    <span className="flex items-center gap-1 bg-ilinyx-50 text-ilinyx-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                                        <Users className="h-3 w-3" /> {course.student_count}
+                                    </span>
+                                </div>
+                            </button>
+                        ))
+                    )}
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
 
 // ══════════════════════════════════════════════════════════════════
-// TABLA DINÁMICA DE PERSONAS (con autocomplete)
+// TABLA DINÁMICA DE PERSONAS (con autocomplete + importar clase)
 // ══════════════════════════════════════════════════════════════════
-function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow }) {
+function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow, onImportCourse }) {
     return (
         <div className="space-y-2">
             <div className="rounded-xl border border-slate-200 overflow-visible">
@@ -165,9 +244,16 @@ function PeopleTable({ rows, onChange, onAdd, onDel, emptyRow }) {
                     </tbody>
                 </table>
             </div>
-            <button onClick={() => onAdd(emptyRow)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ilinyx-600 hover:text-ilinyx-800 transition-colors px-2 py-1 rounded-lg hover:bg-ilinyx-50">
-                <Plus className="h-3.5 w-3.5" /> Agregar fila
-            </button>
+            <div className="flex items-center gap-2">
+                <button onClick={() => onAdd(emptyRow)} className="inline-flex items-center gap-1.5 text-xs font-semibold text-ilinyx-600 hover:text-ilinyx-800 transition-colors px-2 py-1 rounded-lg hover:bg-ilinyx-50">
+                    <Plus className="h-3.5 w-3.5" /> Agregar fila
+                </button>
+                {onImportCourse && (
+                    <button onClick={onImportCourse} className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors px-2 py-1 rounded-lg hover:bg-emerald-50">
+                        <BookOpen className="h-3.5 w-3.5" /> Importar clase de AGON
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
@@ -183,11 +269,16 @@ export default function ActasPage() {
     });
     const [current, setCurrent] = useState(null);
     const [step, setStep] = useState(0);
+    const [commentText, setCommentText] = useState('');
+    const [expandedComments, setExpandedComments] = useState(null);
+
+    // ── Permisos por rol ──
+    const isStudent = user?.role === 'STUDENT';
 
     const saveAll = (list) => { setActas(list); localStorage.setItem('ilinyx_actas', JSON.stringify(list)); };
-    const handleNew = () => { setCurrent(mkActa()); setStep(0); setView('form'); };
-    const handleEdit = (a) => { setCurrent({ ...a }); setStep(0); setView('form'); };
-    const handleDelete = (id) => { if (!confirm('¿Eliminar esta acta?')) return; saveAll(actas.filter(a => a.id !== id)); };
+    const handleNew = () => { if (isStudent) return; setCurrent(mkActa()); setStep(0); setView('form'); };
+    const handleEdit = (a) => { if (isStudent) return; setCurrent({ ...a }); setStep(0); setView('form'); };
+    const handleDelete = (id) => { if (isStudent) return; if (!confirm('¿Eliminar esta acta?')) return; saveAll(actas.filter(a => a.id !== id)); };
     const handleSave = () => {
         if (!current) return;
         const exists = actas.find(a => a.id === current.id);
@@ -195,7 +286,7 @@ export default function ActasPage() {
         setView('list');
     };
 
-    // Actas donde el usuario actual aparece como asistente/invitado/etc
+    // Actas donde el usuario actual aparece
     const myActas = actas.filter(a => {
         const myName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim().toLowerCase() : '';
         const myId = user?.id;
@@ -216,8 +307,23 @@ export default function ActasPage() {
         saveAll(updated);
     };
 
-    if (view === 'preview' && current) return <PrintView acta={current} onBack={() => setView('form')} />;
-    if (view === 'form' && current) return (
+    const handleAddComment = (actaId) => {
+        if (!commentText.trim()) return;
+        const name = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : 'Anónimo';
+        const newComment = {
+            id: Date.now(), user_id: user?.id, user_name: name,
+            user_role: user?.role || '', user_foto: user?.photo || '',
+            text: commentText.trim(), created_at: new Date().toISOString(),
+        };
+        saveAll(actas.map(a => a.id !== actaId ? a : { ...a, comentarios: [...(a.comentarios || []), newComment] }));
+        setCommentText('');
+    };
+
+    // Estudiantes empiezan en "Mis Actas"
+    useEffect(() => { if (isStudent && view === 'list') setView('mis'); }, [isStudent]);
+
+    if (view === 'preview' && current) return <PrintView acta={current} onBack={() => setView(isStudent ? 'mis' : 'form')} />;
+    if (view === 'form' && current && !isStudent) return (
         <FormView acta={current} step={step} setStep={setStep} user={user}
             onChange={setCurrent} onSave={handleSave}
             onPreview={() => setView('preview')} onBack={() => setView('list')} />
@@ -231,19 +337,24 @@ export default function ActasPage() {
                     <h1 className="text-2xl font-bold text-slate-800">Actas de Reunión</h1>
                     <p className="text-slate-500 text-sm mt-0.5">Formato FOR023GDC · Universidad Pedagógica Nacional</p>
                 </div>
-                <button onClick={handleNew} className="inline-flex items-center gap-2 bg-ilinyx-700 hover:bg-ilinyx-800 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95">
-                    <Plus className="h-4 w-4" /> Nueva Acta
-                </button>
+                {!isStudent && (
+                    <button onClick={handleNew} className="inline-flex items-center gap-2 bg-ilinyx-700 hover:bg-ilinyx-800 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95">
+                        <Plus className="h-4 w-4" /> Nueva Acta
+                    </button>
+                )}
             </div>
 
             {/* Tabs */}
             <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
-                {['Todas las Actas', 'Mis Actas'].map((t, i) => (
-                    <button key={t} onClick={() => setView(i === 0 ? 'list' : 'mis')}
-                        className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${(view === 'list' && i === 0) || (view === 'mis' && i === 1) ? 'bg-white text-ilinyx-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                        {t} {i === 1 && myActas.length > 0 && <span className="ml-1 bg-ilinyx-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{myActas.length}</span>}
-                    </button>
-                ))}
+                {(isStudent ? ['Mis Actas'] : ['Todas las Actas', 'Mis Actas']).map((t, i) => {
+                    const tabView = isStudent ? 'mis' : (i === 0 ? 'list' : 'mis');
+                    return (
+                        <button key={t} onClick={() => setView(tabView)}
+                            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${view === tabView ? 'bg-white text-ilinyx-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                            {t} {t === 'Mis Actas' && myActas.length > 0 && <span className="ml-1 bg-ilinyx-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{myActas.length}</span>}
+                        </button>
+                    );
+                })}
             </div>
 
 
@@ -321,28 +432,89 @@ export default function ActasPage() {
                             {myActas.map(a => {
                                 const myName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '';
                                 const alreadySigned = a.firmas?.some(f => f.user_id === user?.id || f.nombre === myName);
+                                const comments = a.comentarios || [];
+                                const isExpanded = expandedComments === a.id;
                                 return (
-                                    <div key={a.id} className="px-6 py-4 flex items-center justify-between hover:bg-ilinyx-50/20 transition-colors">
-                                        <div className="space-y-0.5">
-                                            <p className="font-semibold text-slate-800">Acta No. {a.numero || '–'} / {a.total || '–'}</p>
-                                            <p className="text-sm text-slate-500">{a.fecha} · {a.lugar}</p>
-                                            <p className="text-xs text-slate-400">{a.instancias}</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <button onClick={() => { setCurrent({ ...a }); setView('preview'); }}
-                                                className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors" title="Ver acta">
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            {alreadySigned
-                                                ? <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-100">
-                                                    <CheckCircle2 className="h-3.5 w-3.5" /> Ya firmaste
-                                                </span>
-                                                : <button onClick={() => handleSign(a.id)}
-                                                    className="inline-flex items-center gap-1.5 bg-ilinyx-700 hover:bg-ilinyx-800 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md transition-all active:scale-95">
-                                                    <PenLine className="h-4 w-4" /> Firmar
+                                    <div key={a.id} className="px-6 py-4 hover:bg-ilinyx-50/20 transition-colors">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <p className="font-semibold text-slate-800">Acta No. {a.numero || '–'} / {a.total || '–'}</p>
+                                                <p className="text-sm text-slate-500">{a.fecha} · {a.lugar}</p>
+                                                <p className="text-xs text-slate-400">{a.instancias}</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <button onClick={() => setExpandedComments(isExpanded ? null : a.id)}
+                                                    className={`p-2 rounded-lg transition-colors relative ${isExpanded ? 'bg-ilinyx-100 text-ilinyx-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                                    title="Comentarios">
+                                                    <MessageCircle className="h-4 w-4" />
+                                                    {comments.length > 0 && (
+                                                        <span className="absolute -top-1 -right-1 bg-ilinyx-600 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{comments.length}</span>
+                                                    )}
                                                 </button>
-                                            }
+                                                <button onClick={() => { setCurrent({ ...a }); setView('preview'); }}
+                                                    className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors" title="Ver acta">
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                {alreadySigned
+                                                    ? <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-100">
+                                                        <CheckCircle2 className="h-3.5 w-3.5" /> Ya firmaste
+                                                    </span>
+                                                    : <button onClick={() => handleSign(a.id)}
+                                                        className="inline-flex items-center gap-1.5 bg-ilinyx-700 hover:bg-ilinyx-800 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md transition-all active:scale-95">
+                                                        <PenLine className="h-4 w-4" /> Firmar
+                                                    </button>
+                                                }
+                                            </div>
                                         </div>
+                                        {/* Comentarios expandibles */}
+                                        <AnimatePresence>
+                                            {isExpanded && (
+                                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                                                    className="overflow-hidden">
+                                                    <div className="mt-4 pt-4 border-t border-slate-100">
+                                                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                                            <MessageCircle className="h-3.5 w-3.5" /> Comentarios ({comments.length})
+                                                        </p>
+                                                        {comments.length === 0 && <p className="text-sm text-slate-400 mb-3">No hay comentarios aún.</p>}
+                                                        {comments.length > 0 && (
+                                                            <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
+                                                                {comments.map(c => {
+                                                                    const ROLE_ES = { ADMIN: 'Admin', TEACHER: 'Docente', STUDENT: 'Estudiante' };
+                                                                    return (
+                                                                        <div key={c.id} className="flex gap-2.5">
+                                                                            {c.user_foto
+                                                                                ? <img src={c.user_foto} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-white shadow-sm mt-0.5" />
+                                                                                : <div className="w-7 h-7 rounded-full bg-ilinyx-100 flex items-center justify-center text-ilinyx-600 font-bold text-[9px] flex-shrink-0 mt-0.5">
+                                                                                    {c.user_name?.split(' ').map(w => w[0]).slice(0, 2).join('') || '?'}
+                                                                                </div>
+                                                                            }
+                                                                            <div className="flex-1 bg-slate-50 rounded-xl px-3 py-2">
+                                                                                <div className="flex items-center gap-2 mb-0.5">
+                                                                                    <span className="text-xs font-bold text-slate-700">{c.user_name}</span>
+                                                                                    <span className="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{ROLE_ES[c.user_role] || c.user_role}</span>
+                                                                                    <span className="text-[10px] text-slate-400">{new Date(c.created_at).toLocaleString('es-ES', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                                                                </div>
+                                                                                <p className="text-sm text-slate-600">{c.text}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex gap-2">
+                                                            <input value={commentText} onChange={e => setCommentText(e.target.value)}
+                                                                onKeyDown={e => { if (e.key === 'Enter') handleAddComment(a.id); }}
+                                                                placeholder="Escribe un comentario..."
+                                                                className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-ilinyx-400/20 focus:border-ilinyx-500" />
+                                                            <button onClick={() => handleAddComment(a.id)} disabled={!commentText.trim()}
+                                                                className="p-2.5 rounded-xl bg-ilinyx-700 text-white hover:bg-ilinyx-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95">
+                                                                <Send className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 );
                             })}
@@ -364,6 +536,30 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
     });
     const addRow = (field, empty) => onChange(p => ({ ...p, [field]: [...p[field], { ...empty }] }));
     const delRow = (field, idx) => onChange(p => ({ ...p, [field]: p[field].filter((_, i) => i !== idx) }));
+
+    // Modal para importar clase
+    const [importTarget, setImportTarget] = useState(null); // 'asistentes' | 'ausentes' | 'invitados' | null
+
+    const handleCourseImport = (course) => {
+        if (!importTarget || !course.students?.length) return;
+        const ROLE_ES = { ADMIN: 'Administrador', TEACHER: 'Docente', STUDENT: 'Estudiante' };
+        const newRows = course.students.map(s => ({
+            nombre: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+            cargo: ROLE_ES[s.role] || s.role || '',
+            email: s.email || '',
+            user_id: s.id,
+            foto: s.photo || '',
+        }));
+        onChange(p => {
+            // Filtrar filas vacías existentes
+            const existing = p[importTarget].filter(r => r.nombre && r.nombre !== 'N/A' && r.nombre.trim() !== '');
+            // Evitar duplicados por user_id
+            const existingIds = new Set(existing.map(r => r.user_id).filter(Boolean));
+            const toAdd = newRows.filter(r => !existingIds.has(r.user_id));
+            return { ...p, [importTarget]: [...existing, ...toAdd] };
+        });
+        setImportTarget(null);
+    };
 
     const addMySig = () => {
         const name = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : '';
@@ -456,7 +652,8 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
                             <PeopleTable rows={acta.asistentes} emptyRow={emptyPerson}
                                 onChange={(i, k, v) => setRow('asistentes', i, k, v)}
                                 onAdd={r => addRow('asistentes', r)}
-                                onDel={i => delRow('asistentes', i)} />
+                                onDel={i => delRow('asistentes', i)}
+                                onImportCourse={() => setImportTarget('asistentes')} />
                         </Sec>
 
                         {/* Sección 3 */}
@@ -464,7 +661,8 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
                             <PeopleTable rows={acta.ausentes} emptyRow={{ nombre: 'N/A', cargo: '', email: '', user_id: null, foto: '' }}
                                 onChange={(i, k, v) => setRow('ausentes', i, k, v)}
                                 onAdd={r => addRow('ausentes', r)}
-                                onDel={i => delRow('ausentes', i)} />
+                                onDel={i => delRow('ausentes', i)}
+                                onImportCourse={() => setImportTarget('ausentes')} />
                         </Sec>
 
                         {/* Sección 4 */}
@@ -472,7 +670,8 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
                             <PeopleTable rows={acta.invitados} emptyRow={{ nombre: 'N/A', cargo: '', email: '', user_id: null, foto: '' }}
                                 onChange={(i, k, v) => setRow('invitados', i, k, v)}
                                 onAdd={r => addRow('invitados', r)}
-                                onDel={i => delRow('invitados', i)} />
+                                onDel={i => delRow('invitados', i)}
+                                onImportCourse={() => setImportTarget('invitados')} />
                         </Sec>
                     </>}
 
@@ -597,6 +796,13 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
                     </button>
                 }
             </div>
+
+            {/* Modal importar clase */}
+            <CourseImportModal
+                open={!!importTarget}
+                onClose={() => setImportTarget(null)}
+                onImport={handleCourseImport}
+            />
         </div>
     );
 }

@@ -58,5 +58,13 @@ export const getTeachers = () => agonApi.get('/users/?role=TEACHER');
 export const searchUsers = (q) => api.get(`/actas/usuarios/buscar/?q=${encodeURIComponent(q)}`);
 export const getMe = () => agonApi.get('/users/me/');
 
+// Clases de AGON — para importar estudiantes masivamente en actas
+export const getAgonCourses = () => api.get('/actas/clases-agon/');
+
+// Comentarios de actas
+export const getComments = (actaId) => api.get(`/actas/comentarios/${actaId}/`);
+export const postComment = (actaId, text) => api.post(`/actas/comentarios/${actaId}/`, { text, created_at: new Date().toISOString() });
+
 
 export default api;
+

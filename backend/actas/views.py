@@ -279,19 +279,39 @@ def reuniones_firmar(request, pk):
         return Response({'detail': 'No encontrada'}, status=404)
 
     user = request.user
+    uid = user.id
     name = f'{user.first_name} {user.last_name}'.strip() or user.username
     data = acta.data or {}
     firmas = data.get('firmas') or []
 
-    if any(f.get('user_id') == user.id for f in firmas):
-        return Response({'detail': 'Ya firmaste'}, status=400)
+    # Buscar si ya existe en la lista (puede ser pendiente o firmado)
+    existing_idx = None
+    for i, f in enumerate(firmas):
+        f_uid = f.get('user_id')
+        if f_uid and (f_uid == uid or str(f_uid) == str(uid)):
+            existing_idx = i
+            break
 
-    firmas.append({
-        'nombre': name,
-        'firma': request.data.get('firma', name),
-        'user_id': user.id,
-        'fecha': request.data.get('fecha', ''),
-    })
+    firma_img = request.data.get('firma', '')
+
+    if existing_idx is not None:
+        # Ya existe: verificar si ya firmó
+        if firmas[existing_idx].get('firmado'):
+            return Response({'detail': 'Ya firmaste esta acta'}, status=400)
+        # Está pendiente → actualizar con firma real
+        firmas[existing_idx]['firma'] = firma_img
+        firmas[existing_idx]['firmado'] = True
+        firmas[existing_idx]['fecha'] = request.data.get('fecha', '')
+    else:
+        # No existe → agregar como firmado
+        firmas.append({
+            'nombre': name,
+            'firma': firma_img,
+            'user_id': uid,
+            'firmado': True,
+            'fecha': request.data.get('fecha', ''),
+        })
+
     data['firmas'] = firmas
     acta.data = data
     acta.save()
@@ -320,3 +340,34 @@ def reuniones_comentar(request, pk):
     acta.data = data
     acta.save()
     return Response({'success': True}, status=201)
+
+
+# ════════════════════════════════════════════════════════════════
+# FIRMA PERSONAL — gestión de firma almacenada
+# ════════════════════════════════════════════════════════════════
+from .models import FirmaUsuario
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def firma_usuario_view(request):
+    """Obtener o guardar la firma personal del usuario autenticado."""
+    user = request.user
+
+    if request.method == 'GET':
+        try:
+            fu = FirmaUsuario.objects.get(user_id=user.id)
+            return Response({'firma_data': fu.firma_data, 'updated_at': fu.updated_at})
+        except FirmaUsuario.DoesNotExist:
+            return Response({'firma_data': None})
+
+    # POST — guardar/actualizar firma
+    firma_data = request.data.get('firma_data', '')
+    if not firma_data:
+        return Response({'detail': 'firma_data es requerido'}, status=400)
+
+    fu, created = FirmaUsuario.objects.update_or_create(
+        user_id=user.id,
+        defaults={'firma_data': firma_data},
+    )
+    return Response({'firma_data': fu.firma_data, 'updated_at': fu.updated_at}, status=201 if created else 200)

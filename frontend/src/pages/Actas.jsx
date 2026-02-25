@@ -11,6 +11,7 @@ import {
     searchUsers, getAgonCourses,
     getActasReunion, createActaReunion, updateActaReunion, deleteActaReunion,
     getMisActasReunion, firmarActaReunion, comentarActaReunion,
+    getFirmaUsuario, saveFirmaUsuario,
 } from '../services/api';
 
 const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo-blanco.png';
@@ -357,6 +358,109 @@ function SignaturePad({ open, onClose, onConfirm, userName }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// GESTIÓN DE FIRMA PERSONAL — dibujar / subir / ver firma almacenada
+// ══════════════════════════════════════════════════════════════════
+function GestionFirmaModal({ firmaActual, onSave, onDelete, onClose }) {
+    const canvasRef = useRef(null);
+    const [drawing, setDrawing] = useState(false);
+    const [hasDrawn, setHasDrawn] = useState(false);
+    const [uploadedUrl, setUploadedUrl] = useState(null);
+
+    const getPos = (e) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const t = e.touches?.[0] || e;
+        return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    };
+    const startDraw = (e) => { e.preventDefault(); setDrawing(true); const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    const draw = (e) => { if (!drawing) return; e.preventDefault(); const ctx = canvasRef.current.getContext('2d'); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke(); setHasDrawn(true); };
+    const stopDraw = () => setDrawing(false);
+    const clearCanvas = () => { const ctx = canvasRef.current.getContext('2d'); ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); setHasDrawn(false); setUploadedUrl(null); };
+
+    const handleFile = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => { setUploadedUrl(ev.target.result); setHasDrawn(false); };
+        reader.readAsDataURL(file);
+    };
+
+    const handleSave = () => {
+        let data;
+        if (uploadedUrl) { data = uploadedUrl; }
+        else if (hasDrawn && canvasRef.current) { data = canvasRef.current.toDataURL('image/png'); }
+        else return;
+        onSave(data);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                    <h3 className="font-bold text-slate-800">✍️ Mi Firma Personal</h3>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="p-5 space-y-4">
+                    <p className="text-sm text-slate-500">
+                        Tu firma se guardará para firmar actas con un solo clic.
+                    </p>
+
+                    {/* Firma actual */}
+                    {firmaActual && (
+                        <div className="border-2 border-emerald-200 rounded-xl p-4 bg-emerald-50">
+                            <p className="text-xs font-bold text-emerald-700 mb-2">Firma actual guardada:</p>
+                            <img src={firmaActual} alt="Mi firma" className="max-h-[100px] mx-auto bg-white rounded-lg p-2 shadow-sm" />
+                        </div>
+                    )}
+
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        {firmaActual ? 'Reemplazar con nueva firma:' : 'Dibuja o sube tu firma:'}
+                    </p>
+
+                    {!uploadedUrl ? (
+                        <div className="relative">
+                            <canvas ref={canvasRef} width={400} height={160}
+                                className="w-full border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 cursor-crosshair touch-none"
+                                onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+                                onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
+                            {!hasDrawn && <p className="absolute inset-0 flex items-center justify-center text-slate-300 text-sm pointer-events-none">Dibuja aquí con el dedo o mouse</p>}
+                        </div>
+                    ) : (
+                        <div className="border-2 border-slate-200 rounded-xl p-3 bg-slate-50 text-center">
+                            <img src={uploadedUrl} alt="Firma subida" className="max-h-[140px] mx-auto" />
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                        <button onClick={clearCanvas} className="text-xs text-slate-500 hover:text-slate-700 font-medium px-3 py-1.5 rounded-lg hover:bg-slate-100">Limpiar</button>
+                        <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-ilinyx-600 hover:text-ilinyx-800 px-3 py-1.5 rounded-lg hover:bg-ilinyx-50 cursor-pointer">
+                            <Upload className="h-3.5 w-3.5" /> Subir imagen
+                            <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
+                        </label>
+                    </div>
+                </div>
+                <div className="flex justify-between px-5 py-4 border-t border-slate-100 bg-slate-50">
+                    <div>
+                        {firmaActual && (
+                            <button onClick={onDelete} className="px-4 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 rounded-xl">
+                                Eliminar firma
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+                        <button onClick={handleSave} disabled={!hasDrawn && !uploadedUrl}
+                            className="px-5 py-2 text-sm font-bold bg-ilinyx-700 text-white rounded-xl hover:bg-ilinyx-800 shadow disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                            <Save className="h-4 w-4 inline mr-1.5" /> Guardar firma
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════
 export default function ActasPage() {
@@ -370,9 +474,16 @@ export default function ActasPage() {
     const [expandedComments, setExpandedComments] = useState(null);
     const [signingActaId, setSigningActaId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [firmaPersonal, setFirmaPersonal] = useState(null);
+    const [showGestionFirma, setShowGestionFirma] = useState(false);
 
     // ── Permisos por rol ──
     const isStudent = user?.role === 'STUDENT';
+
+    // ── Cargar firma personal ──
+    useEffect(() => {
+        getFirmaUsuario().then(r => setFirmaPersonal(r.data?.firma_data || null)).catch(() => { });
+    }, []);
 
     // ── Cargar actas del backend ──
     const loadActas = useCallback(async () => {
@@ -414,10 +525,26 @@ export default function ActasPage() {
     // Actas donde el usuario actual aparece — ahora viene del backend
     const myActas = misActas;
 
-    const handleSign = (actaId) => { setSigningActaId(actaId); };
+    const handleSign = (actaId) => {
+        if (firmaPersonal) {
+            // Tiene firma guardada → firmar directo
+            (async () => {
+                try {
+                    await firmarActaReunion(actaId, firmaPersonal, new Date().toLocaleDateString('es-ES'));
+                } catch (err) { console.error('Error signing:', err); }
+                loadActas();
+            })();
+        } else {
+            // No tiene firma → abrir pad para dibujar
+            setSigningActaId(actaId);
+        }
+    };
     const confirmSign = async (firmaData) => {
         if (!signingActaId) return;
         try {
+            // Guardar firma personal para futuras veces
+            await saveFirmaUsuario(firmaData);
+            setFirmaPersonal(firmaData);
             await firmarActaReunion(signingActaId, firmaData, new Date().toLocaleDateString('es-ES'));
         } catch (err) { console.error('Error signing:', err); }
         loadActas();
@@ -459,16 +586,23 @@ export default function ActasPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
-                {(isStudent ? ['Mis Actas'] : ['Todas las Actas', 'Mis Actas']).map((t, i) => {
-                    const tabView = isStudent ? 'mis' : (i === 0 ? 'list' : 'mis');
-                    return (
-                        <button key={t} onClick={() => setView(tabView)}
-                            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${view === tabView ? 'bg-white text-ilinyx-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                            {t} {t === 'Mis Actas' && myActas.length > 0 && <span className="ml-1 bg-ilinyx-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{myActas.length}</span>}
-                        </button>
-                    );
-                })}
+            <div className="flex items-center gap-3">
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+                    {(isStudent ? ['Mis Actas'] : ['Todas las Actas', 'Mis Actas']).map((t, i) => {
+                        const tabView = isStudent ? 'mis' : (i === 0 ? 'list' : 'mis');
+                        return (
+                            <button key={t} onClick={() => setView(tabView)}
+                                className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${view === tabView ? 'bg-white text-ilinyx-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                                {t} {t === 'Mis Actas' && myActas.length > 0 && <span className="ml-1 bg-ilinyx-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{myActas.length}</span>}
+                            </button>
+                        );
+                    })}
+                </div>
+                <button onClick={() => setShowGestionFirma(true)}
+                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl border transition-all ${firmaPersonal ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}>
+                    <PenLine className="h-3.5 w-3.5" />
+                    {firmaPersonal ? 'Mi firma ✓' : 'Configurar firma'}
+                </button>
             </div>
 
 
@@ -551,12 +685,14 @@ export default function ActasPage() {
                     ) : (
                         <div className="divide-y divide-slate-50">
                             {myActas.map(a => {
-                                const myName = user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '';
-                                const alreadySigned = a.firmas?.some(f => f.user_id === user?.id || f.nombre === myName);
+                                const myId = user?.id;
+                                const myEntry = a.firmas?.find(f => f.user_id && (f.user_id === myId || String(f.user_id) === String(myId)));
+                                const alreadySigned = myEntry?.firmado === true;
+                                const isPending = myEntry && !myEntry.firmado;
                                 const comments = a.comentarios || [];
                                 const isExpanded = expandedComments === a.id;
                                 const totalPeople = (a.asistentes?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0) + (a.invitados?.filter(x => x.nombre && x.nombre !== 'N/A').length || 0);
-                                const totalFirmas = a.firmas?.length || 0;
+                                const totalFirmas = a.firmas?.filter(f => f.firmado).length || 0;
                                 return (
                                     <div key={a.id} className="px-6 py-4 hover:bg-ilinyx-50/20 transition-colors">
                                         <div className="flex items-center justify-between">
@@ -585,11 +721,11 @@ export default function ActasPage() {
                                                 </button>
                                                 {alreadySigned
                                                     ? <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold px-3 py-2 rounded-xl border border-emerald-100">
-                                                        <CheckCircle2 className="h-3.5 w-3.5" /> Ya firmaste
+                                                        <CheckCircle2 className="h-3.5 w-3.5" /> Firmada ✓
                                                     </span>
                                                     : <button onClick={() => handleSign(a.id)}
                                                         className="inline-flex items-center gap-1.5 bg-ilinyx-700 hover:bg-ilinyx-800 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md transition-all active:scale-95">
-                                                        <PenLine className="h-4 w-4" /> Firmar
+                                                        <PenLine className="h-4 w-4" /> {isPending ? 'Firmar (pendiente)' : 'Firmar'}
                                                     </button>
                                                 }
                                             </div>
@@ -652,13 +788,32 @@ export default function ActasPage() {
             </div>
         </div>
 
-        {/* Modal de firma */}
+        {/* Modal de firma para acta */}
         <SignaturePad
             open={!!signingActaId}
             onClose={() => setSigningActaId(null)}
             onConfirm={confirmSign}
             userName={user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : ''}
         />
+
+        {/* Modal Gestión de Firma Personal */}
+        {showGestionFirma && (
+            <GestionFirmaModal
+                firmaActual={firmaPersonal}
+                onSave={async (data) => {
+                    try {
+                        await saveFirmaUsuario(data);
+                        setFirmaPersonal(data);
+                    } catch (err) { console.error('Error saving firma:', err); }
+                    setShowGestionFirma(false);
+                }}
+                onDelete={async () => {
+                    setFirmaPersonal(null);
+                    setShowGestionFirma(false);
+                }}
+                onClose={() => setShowGestionFirma(false)}
+            />
+        )}
     </>);
 }
 
@@ -687,6 +842,7 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
                 nombre: r.nombre,
                 firma: '',
                 user_id: r.user_id || null,
+                firmado: false,
                 fecha: '',
             }));
             if (toAdd.length === 0) return p;
@@ -705,9 +861,10 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
             // Importar como firmas pendientes
             const newFirmas = course.students.map(s => ({
                 nombre: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
-                firma: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+                firma: '',
                 user_id: s.id,
-                fecha: new Date().toLocaleDateString('es-ES'),
+                firmado: false,
+                fecha: '',
             }));
             onChange(p => {
                 const existingIds = new Set((p.firmas || []).map(f => f.user_id).filter(Boolean));
@@ -739,7 +896,7 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
         onChange(p => {
             const already = p.firmas?.some(f => f.user_id === user?.id || f.nombre === name);
             if (already) return p;
-            return { ...p, firmas: [...(p.firmas || []), { nombre: name, firma: name, user_id: user?.id, fecha: new Date().toLocaleDateString('es-ES') }] };
+            return { ...p, firmas: [...(p.firmas || []), { nombre: name, firma: '', user_id: user?.id, firmado: false, fecha: '' }] };
         });
     };
 
@@ -1088,7 +1245,14 @@ function PrintView({ acta, onBack }) {
                     <tbody>
                         {(acta.firmas || []).length === 0
                             ? <tr><td style={{ height: 36 }}></td><td></td><td></td></tr>
-                            : acta.firmas.map((f, i) => <tr key={i}><td style={{ height: 36 }}>{f.nombre}</td><td>{f.firma}</td><td>{f.fecha}</td></tr>)
+                            : acta.firmas.map((f, i) => <tr key={i}>
+                                <td style={{ height: 50 }}>{f.nombre}</td>
+                                <td>{f.firmado && f.firma && f.firma.startsWith('data:')
+                                    ? <img src={f.firma} alt="Firma" style={{ maxHeight: 40, maxWidth: 140 }} />
+                                    : f.firmado ? f.firma || '✓' : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Pendiente</span>
+                                }</td>
+                                <td>{f.fecha || '—'}</td>
+                            </tr>)
                         }
                     </tbody>
                 </table>

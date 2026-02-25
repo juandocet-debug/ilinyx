@@ -73,5 +73,9 @@ export const getMisActasReunion = () => api.get('/actas/reuniones/mis/');
 export const firmarActaReunion = (id, firma, fecha) => api.post(`/actas/reuniones/${id}/firmar/`, { firma, fecha });
 export const comentarActaReunion = (id, text) => api.post(`/actas/reuniones/${id}/comentar/`, { text, created_at: new Date().toISOString() });
 
+// Firma personal almacenada
+export const getFirmaUsuario = () => api.get('/actas/firma-usuario/');
+export const saveFirmaUsuario = (firma_data) => api.post('/actas/firma-usuario/', { firma_data });
+
 
 export default api;

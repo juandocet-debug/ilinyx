@@ -90,3 +90,14 @@ class ActaReunion(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class FirmaUsuario(models.Model):
+    """Firma personal almacenada — base64 de imagen dibujada o subida."""
+    user_id = models.IntegerField(unique=True)
+    firma_data = models.TextField(help_text='Base64 de la imagen de firma')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Firma de Usuario'

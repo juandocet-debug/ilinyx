@@ -1300,12 +1300,25 @@ function FormView({ acta, step, setStep, user, onChange, onSave, onPreview, onBa
                                             <tr><td colSpan={4} className="text-center py-8 text-slate-400 text-sm">Sin firmas aún</td></tr>
                                         )}
                                         {(acta.firmas || []).map((f, i) => (
-                                            <tr key={i} className="bg-emerald-50/30">
+                                            <tr key={i} className={f.firmado ? 'bg-emerald-50/30' : 'bg-amber-50/20'}>
                                                 <td className="px-3 py-2.5 font-medium text-slate-700 text-sm">{f.nombre}</td>
-                                                <td className="px-3 py-2.5 text-slate-600 italic text-sm">{f.firma}</td>
+                                                <td className="px-3 py-2.5 text-sm">
+                                                    {f.firmado && f.firma && f.firma.startsWith('data:')
+                                                        ? <img src={f.firma} alt="Firma" className="max-h-10 max-w-[140px] object-contain" />
+                                                        : f.firmado
+                                                            ? <span className="text-emerald-600 font-semibold">✓ Firmado</span>
+                                                            : <span className="text-amber-500 italic">Pendiente</span>
+                                                    }
+                                                </td>
                                                 <td className="px-3 py-2.5 text-slate-400 text-xs">{f.fecha || '—'}</td>
-                                                <td className="px-2 py-2 text-center">
-                                                    <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                                                <td className="px-2 py-2 text-center flex items-center gap-1">
+                                                    {f.firmado
+                                                        ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                                                        : <span className="w-4 h-4 rounded-full bg-amber-200 mx-auto block" title="Pendiente" />
+                                                    }
+                                                    <button onClick={() => delRow('firmas', i)} className="p-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors" title="Quitar">
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}

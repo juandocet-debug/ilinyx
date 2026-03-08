@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     # Apps locales de Ilinyx
     'actas',
     'grupos',
+    'evaluaciones',
 ]
 
 MIDDLEWARE = [

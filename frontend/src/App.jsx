@@ -8,6 +8,7 @@ const DashboardLayout = lazy(() => import('./layouts/DashboardLayout'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ActasPage = lazy(() => import('./pages/Actas'));
 const GruposPage = lazy(() => import('./pages/Grupos'));
+const EvaluacionesPage = lazy(() => import('./pages/evaluaciones/Evaluaciones'));
 
 const PageLoader = () => (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-4">
@@ -55,6 +56,7 @@ function App() {
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/actas" element={<ActasPage />} />
                             <Route path="/grupos" element={<GruposPage />} />
+                            <Route path="/evaluaciones" element={<EvaluacionesPage />} />
                         </Route>
                     </Routes>
                 </Suspense>

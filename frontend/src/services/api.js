@@ -77,5 +77,15 @@ export const comentarActaReunion = (id, text) => api.post(`/actas/reuniones/${id
 export const getFirmaUsuario = () => api.get('/actas/firma-usuario/');
 export const saveFirmaUsuario = (firma_data) => api.post('/actas/firma-usuario/', { firma_data });
 
+// ── Evaluaciones y Rúbricas ───────────────────────────────────────────────
+export const getRubricas = () => api.get('/evaluaciones/rubricas/');
+export const createRubrica = data => api.post('/evaluaciones/rubricas/', data);
+export const deleteRubrica = id => api.delete(`/evaluaciones/rubricas/${id}/`);
+
+export const getEvaluacionesGrupos = (grupo_id) => api.get('/evaluaciones/grupos/', { params: { grupo_id } });
+export const createEvaluacionGrupo = data => api.post('/evaluaciones/grupos/', data);
+
+export const getCalificaciones = (evaluacion_id) => api.get('/evaluaciones/calificaciones/', { params: { evaluacion_id } });
+export const guardarCalificacion = data => api.post('/evaluaciones/calificaciones/guardar_batch/', data);
 
 export default api;

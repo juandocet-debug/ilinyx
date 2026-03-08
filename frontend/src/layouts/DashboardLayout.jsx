@@ -15,6 +15,7 @@ const NAV_ITEMS = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Inicio' },
     { to: '/actas', icon: FileSignature, label: 'Registro de Actas' },
     { to: '/grupos', icon: Users2, label: 'Cohortes / Grupos' },
+    { to: '/evaluaciones', icon: FileSignature, label: 'Evaluaciones' },
 ];
 
 export default function DashboardLayout() {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useEvaluaciones } from '../../hooks/useEvaluaciones';
-import { useGrupos } from '../../hooks/useGrupos'; // Asegúrate de que existe este hook o algo similar
 
 export default function EvaluacionesGrupo({ addToast, isStudent, user }) {
     const { evaluaciones, calificaciones, loadEvaluacionesGrupo, loadCalificaciones } = useEvaluaciones(addToast);

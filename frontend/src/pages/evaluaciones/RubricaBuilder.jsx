@@ -129,7 +129,13 @@ export default function RubricaBuilder({ rubricaInicial, saveRubrica, onClose })
         }));
         if (crits.length === 0) { setError('Agrega al menos un criterio con nombre.'); return; }
         setSaving(true);
-        const ok = await saveRubrica({ titulo: titulo.trim(), descripcion, cant_evaluadores: cantEvaluadores, criterios: crits });
+        const ok = await saveRubrica({
+            id: rubricaInicial?.id || null,  // null = nueva, number = edición
+            titulo: titulo.trim(),
+            descripcion,
+            cant_evaluadores: cantEvaluadores,
+            criterios: crits
+        });
         setSaving(false);
         if (ok) onClose(true);
     };

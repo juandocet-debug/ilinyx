@@ -1,16 +1,45 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Printer } from 'lucide-react';
 
 const NIVEL_LABELS = { 1:'Insuficiente', 2:'Básico', 3:'Adecuado', 4:'Bueno', 5:'Excelente' };
 const NIVEL_COLORS = { 1:'#ef4444', 2:'#f97316', 3:'#eab308', 4:'#22c55e', 5:'#6366f1' };
 
+/** Convierte una URL de imagen a base64 para que funcione en window.print() */
+async function toBase64(url) {
+    try {
+        const resp = await fetch(url, { mode: 'no-cors' });
+        const blob = await resp.blob();
+        return new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.onerror = rej;
+            reader.readAsDataURL(blob);
+        });
+    } catch { return null; }
+}
+
 export default function EvalPDF({ rubrica, curso, puntajes, calcPromedio, onClose }) {
     const estudiantes = curso?.students || [];
+    const [fotos, setFotos] = useState({});
 
     // Recolectar todos los valores únicos de nivel en la rúbrica
     const valoresSet = new Set();
     rubrica.criterios?.forEach(c => c.niveles?.forEach(n => valoresSet.add(n.valor)));
     const valores = Array.from(valoresSet).sort((a, b) => a - b);
+
+    // Precargar fotos como base64 para que funcionen al imprimir
+    useEffect(() => {
+        Promise.all(
+            estudiantes.filter(e => e.photo).map(async e => {
+                const b64 = await toBase64(e.photo);
+                return [e.id, b64];
+            })
+        ).then(pairs => {
+            const map = {};
+            pairs.forEach(([id, b64]) => { if (b64) map[id] = b64; });
+            setFotos(map);
+        });
+    }, []);
 
     return (
         <div className="eval-page">

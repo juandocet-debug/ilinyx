@@ -68,29 +68,40 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
 
     const guardar = async (uid) => {
         setSaving(true);
-        await api.post('/evaluaciones/calificaciones/guardar_batch/', {
-            evaluacion_grupo: evaluacion.id,
-            usuario_agon_id: uid,
-            puntajes: puntajes[uid] || {},
-            nota_final: parseFloat(calcPromedio(uid).toFixed(2)),
-        });
-        setGuardados(p => ({ ...p, [uid]: true }));
-        setEditando(p => ({ ...p, [uid]: false }));
-        setSaving(false);
+        try {
+            await api.post('/evaluaciones/calificaciones/guardar_batch/', {
+                evaluacion_grupo: evaluacion.id,
+                usuario_agon_id: uid,
+                puntajes: puntajes[uid] || {},
+                nota_final: parseFloat(calcPromedio(uid).toFixed(2)),
+            });
+            setGuardados(p => ({ ...p, [uid]: true }));
+            setEditando(p => ({ ...p, [uid]: false }));
+        } catch (e) {
+            console.error('Error guardando:', e?.response?.data || e.message);
+            alert('No se pudo guardar la nota: ' + (e?.response?.data?.error || e.message));
+        } finally {
+            setSaving(false);
+        }
     };
 
     const guardarTodos = async () => {
         setSaving(true);
-        for (const e of todosEstudiantes) {
-            await api.post('/evaluaciones/calificaciones/guardar_batch/', {
-                evaluacion_grupo: evaluacion.id,
-                usuario_agon_id: e.id,
-                puntajes: puntajes[e.id] || {},
-                nota_final: parseFloat(calcPromedio(e.id).toFixed(2)),
-            });
-            setGuardados(p => ({ ...p, [e.id]: true }));
+        try {
+            for (const e of todosEstudiantes) {
+                await api.post('/evaluaciones/calificaciones/guardar_batch/', {
+                    evaluacion_grupo: evaluacion.id,
+                    usuario_agon_id: e.id,
+                    puntajes: puntajes[e.id] || {},
+                    nota_final: parseFloat(calcPromedio(e.id).toFixed(2)),
+                });
+                setGuardados(p => ({ ...p, [e.id]: true }));
+            }
+        } catch (e) {
+            console.error('Error guardando colectivo:', e?.response?.data || e.message);
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
     const puedeEditar = (uid) => !guardados[uid] || editando[uid];

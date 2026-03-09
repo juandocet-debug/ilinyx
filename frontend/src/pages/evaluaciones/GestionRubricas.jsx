@@ -1,19 +1,14 @@
-import React, { useEffect } from 'react';
-import { Trash2, BookOpen, PenLine } from 'lucide-react';
-import { useEvaluaciones } from '../../hooks/useEvaluaciones';
+import React from 'react';
+import { Trash2, BookOpen, PenLine, Edit2 } from 'lucide-react';
 
-export default function GestionRubricas() {
-    const { rubricas, loading, loadRubricas, deleteRubrica } = useEvaluaciones();
-
-    useEffect(() => { loadRubricas(); }, []);
-
+export default function GestionRubricas({ rubricas, loading, onEditar, onEliminar }) {
     if (loading) return <div className="eval-empty"><p>Cargando...</p></div>;
 
-    if (rubricas.length === 0) return (
+    if (!rubricas || rubricas.length === 0) return (
         <div className="eval-empty">
             <BookOpen size={40} />
             <p>Aún no tienes rúbricas creadas.</p>
-            <p style={{fontSize:'0.78rem', marginTop:'4px'}}>Usa el botón <strong>+ Nueva Rúbrica</strong> para empezar.</p>
+            <p style={{ fontSize:'0.78rem', marginTop:'4px' }}>Usa el botón <strong>+ Nueva Rúbrica</strong> para empezar.</p>
         </div>
     );
 
@@ -28,9 +23,15 @@ export default function GestionRubricas() {
                             </div>
                             <h3 style={{ fontWeight:700, color:'#1e1b4b', fontSize:'0.95rem', margin:0 }}>{r.titulo}</h3>
                         </div>
-                        <button className="eval-btn-danger" onClick={() => deleteRubrica(r.id)}>
-                            <Trash2 size={15}/>
-                        </button>
+                        <div style={{ display:'flex', gap:'4px' }}>
+                            <button title="Editar" onClick={() => onEditar(r)}
+                                style={{ background:'#ede9fe', border:'none', color:'#7c3aed', cursor:'pointer', padding:'6px 8px', borderRadius:'8px', display:'flex', alignItems:'center' }}>
+                                <Edit2 size={14}/>
+                            </button>
+                            <button title="Eliminar" className="eval-btn-danger" onClick={() => onEliminar(r.id)}>
+                                <Trash2 size={14}/>
+                            </button>
+                        </div>
                     </div>
 
                     {r.descripcion && (
@@ -44,7 +45,7 @@ export default function GestionRubricas() {
                     </div>
 
                     <div style={{ marginTop:'1rem', paddingTop:'0.75rem', borderTop:'1px solid #f1f5f9', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                        <span style={{fontSize:'0.72rem', color:'#94a3b8'}}>{r.criterios?.length || 0} criterios · Escala 1–5</span>
+                        <span style={{ fontSize:'0.72rem', color:'#94a3b8' }}>{r.criterios?.length || 0} criterios · Escala 1–5</span>
                         <span className="rubrica-badge">Activa</span>
                     </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus, Award } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
 import { useEvaluaciones } from '../../hooks/useEvaluaciones';
@@ -12,11 +12,21 @@ import './evaluaciones.css';
 export default function EvaluacionesPage() {
     const { user } = useUser();
     const isStudent = user?.role === 'STUDENT';
-    const { addToast, toasts } = useEvaluaciones();
+    const { rubricas, loading, loadRubricas, saveRubrica, deleteRubrica } = useEvaluaciones();
 
     const [tab, setTab] = useState(isStudent ? 'mis_notas' : 'gestionar');
     const [building, setBuilding] = useState(false);
-    const [evaluandoGrupo, setEvaluandoGrupo] = useState(null); // { evaluacion, curso }
+    const [editando, setEditando] = useState(null); // rubrica a editar
+    const [evaluandoGrupo, setEvaluandoGrupo] = useState(null);
+
+    // Cargar rúbricas al montar
+    React.useEffect(() => { loadRubricas(); }, []);
+
+    const handleBuilderClose = useCallback(async (saved) => {
+        setBuilding(false);
+        setEditando(null);
+        if (saved) await loadRubricas(); // refresca después de guardar
+    }, [loadRubricas]);
 
     if (evaluandoGrupo) {
         return (
@@ -30,7 +40,13 @@ export default function EvaluacionesPage() {
 
     return (
         <div className="eval-page">
-            {building && <RubricaBuilder onClose={() => setBuilding(false)} />}
+            {(building || editando) && (
+                <RubricaBuilder
+                    rubricaInicial={editando}
+                    saveRubrica={saveRubrica}
+                    onClose={handleBuilderClose}
+                />
+            )}
 
             {/* Header */}
             <div className="eval-header">
@@ -57,9 +73,19 @@ export default function EvaluacionesPage() {
             )}
 
             <div className="eval-content">
-                {tab === 'gestionar' && <GestionRubricas />}
+                {tab === 'gestionar' && (
+                    <GestionRubricas
+                        rubricas={rubricas}
+                        loading={loading}
+                        onEditar={(r) => setEditando(r)}
+                        onEliminar={async (id) => { await deleteRubrica(id); await loadRubricas(); }}
+                    />
+                )}
                 {tab === 'asignar' && (
-                    <AsignarEvaluacion onEvaluar={(ev, curso) => setEvaluandoGrupo({ evaluacion: ev, curso })} />
+                    <AsignarEvaluacion
+                        rubricas={rubricas}
+                        onEvaluar={(ev, curso) => setEvaluandoGrupo({ evaluacion: ev, curso })}
+                    />
                 )}
                 {isStudent && <MisNotas user={user} />}
             </div>

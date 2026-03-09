@@ -15,15 +15,14 @@ class RubricaViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # Docentes ven solo las suyas; admin ve todas
         if hasattr(user, 'role') and user.role == 'ADMIN':
             return Rubrica.objects.prefetch_related('criterios').all()
-        return Rubrica.objects.prefetch_related('criterios').filter(creador_id=user.agon_id)
+        return Rubrica.objects.prefetch_related('criterios').filter(creador_id=user.id)
 
     def create(self, request, *args, **kwargs):
         ser = RubricaCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        rubrica = ser.create(user_id=request.user.agon_id)
+        rubrica = ser.create(user_id=request.user.id)
         return Response(RubricaSerializer(rubrica).data, status=status.HTTP_201_CREATED)
 
 
@@ -59,7 +58,7 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         # Estudiante solo ve las suyas
         user = self.request.user
         if hasattr(user, 'role') and user.role == 'STUDENT':
-            qs = qs.filter(usuario_agon_id=user.agon_id)
+            qs = qs.filter(usuario_agon_id=user.id)
         return qs
 
     @action(detail=False, methods=['post'], url_path='guardar_batch')

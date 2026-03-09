@@ -62,7 +62,9 @@ class EvaluacionGrupoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = EvaluacionGrupo.objects.select_related('rubrica__criterios').prefetch_related('rubrica__criterios__niveles')
+        qs = EvaluacionGrupo.objects.select_related('rubrica').prefetch_related(
+            'rubrica__criterios__niveles'
+        )
         grupo_id = self.request.query_params.get('grupo_agon_id')
         if grupo_id:
             qs = qs.filter(grupo_agon_id=grupo_id)

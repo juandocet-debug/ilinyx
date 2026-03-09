@@ -4,6 +4,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 import traceback
 
 # === DEBUG TEMPORAL - ELIMINAR DESPUÉS ===
@@ -45,9 +48,26 @@ def debug_test(request):
     return JsonResponse(results)
 # === FIN DEBUG ===
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me_view(request):
+    """Devuelve los datos del usuario autenticado desde el JWT (sin re-llamar a AGON)."""
+    u = request.user
+    return Response({
+        'id':         getattr(u, 'id', None),
+        'pk':         getattr(u, 'pk', None),
+        'username':   getattr(u, 'username', ''),
+        'email':      getattr(u, 'email', ''),
+        'first_name': getattr(u, 'first_name', ''),
+        'last_name':  getattr(u, 'last_name', ''),
+        'role':       getattr(u, 'role', ''),
+        'is_staff':   getattr(u, 'is_staff', False),
+    })
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/debug/test/', debug_test),  # TEMPORAL
+    path('api/auth/me/', me_view),        # Usuario actual desde JWT
     path('api/actas/', include('actas.urls')),
     path('api/grupos/', include('grupos.urls')),
     path('api/evaluaciones/', include('evaluaciones.urls')),

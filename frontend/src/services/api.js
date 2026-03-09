@@ -55,7 +55,7 @@ export const deleteGrupo = id => api.delete(`/grupos/${id}/`);
 // Usuarios de AGON — vía proxy seguro de ILINYX (server-to-server con API key)
 export const getTeachers = () => agonApi.get('/users/?role=TEACHER');
 export const searchUsers = (q) => api.get(`/actas/usuarios/buscar/?q=${encodeURIComponent(q)}`);
-export const getMe = () => agonApi.get('/users/me/');
+export const getMe = () => api.get('/auth/me/');  // proxy local — no llama a AGON directo
 
 // Clases de AGON
 export const getAgonCourses = () => api.get('/actas/clases-agon/');

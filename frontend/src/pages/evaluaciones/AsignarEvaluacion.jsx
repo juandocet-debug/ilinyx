@@ -1,35 +1,80 @@
-import React, { useState, useEffect } from 'react';
-import { Users, ChevronRight, ClipboardList } from 'lucide-react';
-import { useEvaluaciones } from '../../hooks/useEvaluaciones';
-import { getAgonCourses } from '../../services/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Users, ChevronRight, ClipboardList, Trash2, RefreshCw } from 'lucide-react';
+import api, { getAgonCourses, createEvaluacionGrupo, deleteRubrica } from '../../services/api';
 
-export default function AsignarEvaluacion({ onEvaluar }) {
-    const { rubricas, evaluaciones, loadRubricas, loadEvaluacionesGrupo, saveEvaluacionGrupo } = useEvaluaciones();
-    const [cursos, setCursos] = useState([]);
-    const [rubricaId, setRubricaId] = useState('');
-    const [cursoId, setCursoId] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+export default function AsignarEvaluacion({ rubricas, onEvaluar }) {
+    const [cursos, setCursos]           = useState([]);
+    const [evaluaciones, setEvaluaciones] = useState([]);
+    const [rubricaId, setRubricaId]     = useState('');
+    const [cursoId, setCursoId]         = useState('');
+    const [loading, setLoading]         = useState(true);
+    const [saving, setSaving]           = useState(false);
+    const [error, setError]             = useState('');
 
-    useEffect(() => {
-        loadRubricas();
-        loadEvaluacionesGrupo();
-        getAgonCourses()
-            .then(r => setCursos(Array.isArray(r.data) ? r.data : []))
-            .catch(() => setCursos([]))
-            .finally(() => setLoading(false));
+    const cargar = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [cRes, eRes] = await Promise.all([
+                getAgonCourses(),
+                api.get('/evaluaciones/grupos/'),
+            ]);
+            setCursos(Array.isArray(cRes.data) ? cRes.data : []);
+            setEvaluaciones(Array.isArray(eRes.data) ? eRes.data : eRes.data?.results || []);
+        } catch (e) {
+            setError('Error al cargar datos: ' + (e?.response?.status || e.message));
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    useEffect(() => { cargar(); }, []);
+
+    const getCurso = (id) => cursos.find(c => String(c.id) === String(id));
 
     const handleAsignar = async () => {
         if (!rubricaId || !cursoId) return;
         setSaving(true);
-        await saveEvaluacionGrupo({ rubrica: rubricaId, grupo_agon_id: cursoId });
-        setSaving(false);
-        loadEvaluacionesGrupo();
+        setError('');
+        const curso = getCurso(cursoId);
+        try {
+            await createEvaluacionGrupo({
+                rubrica: Number(rubricaId),
+                grupo_agon_id: Number(cursoId),
+                grupo_nombre: curso?.name || '',
+            });
+            await cargar();
+            setRubricaId('');
+            setCursoId('');
+        } catch (e) {
+            setError('Error al asignar: ' + (e?.response?.data?.error || e.message));
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const getCurso = (id) => cursos.find(c => String(c.id) === String(id));
-    const getRubrica = (id) => rubricas.find(r => String(r.id) === String(id));
+    const handleEliminar = async (id) => {
+        if (!window.confirm('¿Eliminar esta evaluación? Se borrarán todas las calificaciones.')) return;
+        await api.delete(`/evaluaciones/grupos/${id}/`);
+        cargar();
+    };
+
+    const handleEvaluar = async (ev) => {
+        // Buscar el curso en memoria o intentarlo de nuevo desde el estado
+        let curso = getCurso(ev.grupo_agon_id);
+        if (!curso) {
+            // Si no está en cache, intentar recargar cursos
+            try {
+                const r = await getAgonCourses();
+                const lista = Array.isArray(r.data) ? r.data : [];
+                setCursos(lista);
+                curso = lista.find(c => String(c.id) === String(ev.grupo_agon_id));
+            } catch {}
+        }
+        if (!curso) {
+            curso = { id: ev.grupo_agon_id, name: ev.grupo_nombre || `Grupo ${ev.grupo_agon_id}`, students: [] };
+        }
+        onEvaluar(ev, curso);
+    };
 
     return (
         <div style={{ display:'flex', flexDirection:'column', gap:'1.5rem' }}>
@@ -38,6 +83,7 @@ export default function AsignarEvaluacion({ onEvaluar }) {
                 <h3 style={{ fontWeight:700, marginBottom:'1rem', display:'flex', alignItems:'center', gap:'8px' }}>
                     <ClipboardList size={18}/> Asignar Rúbrica a un Grupo de AGON
                 </h3>
+                {error && <div style={{ background:'#fee2e2', color:'#dc2626', borderRadius:'8px', padding:'8px 12px', fontSize:'0.8rem', marginBottom:'10px' }}>{error}</div>}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', gap:'12px', alignItems:'flex-end' }}>
                     <div>
                         <label style={{ display:'block', fontSize:'0.72rem', fontWeight:700, color:'#a5b4fc', marginBottom:'6px' }}>RÚBRICA</label>
@@ -60,32 +106,46 @@ export default function AsignarEvaluacion({ onEvaluar }) {
                 </div>
             </div>
 
-            {/* Lista de evaluaciones creadas */}
+            {/* Lista de evaluaciones activas */}
             <div>
-                <h3 style={{ fontWeight:700, color:'#1e1b4b', marginBottom:'0.75rem', fontSize:'0.95rem' }}>
-                    Evaluaciones Activas ({evaluaciones.length})
-                </h3>
-                {evaluaciones.length === 0 ? (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'0.75rem' }}>
+                    <h3 style={{ fontWeight:700, color:'#1e1b4b', fontSize:'0.95rem', margin:0 }}>
+                        Evaluaciones Activas ({evaluaciones.length})
+                    </h3>
+                    <button className="eval-btn-ghost" onClick={cargar} style={{ fontSize:'0.75rem', padding:'5px 10px' }}>
+                        <RefreshCw size={13}/> Actualizar
+                    </button>
+                </div>
+
+                {loading ? (
+                    <div className="eval-empty"><p>Cargando...</p></div>
+                ) : evaluaciones.length === 0 ? (
                     <div className="eval-empty"><Users size={36}/><p>No has creado evaluaciones aún.</p></div>
                 ) : (
                     <div className="eval-grid">
                         {evaluaciones.map(ev => {
-                            const curso = getCurso(ev.grupo_agon_id) || { name: `Grupo ${ev.grupo_agon_id}` };
-                            const rubrica = getRubrica(ev.rubrica);
+                            const curso   = getCurso(ev.grupo_agon_id);
+                            const rubrica = ev.rubrica_detalle || rubricas.find(r => String(r.id) === String(ev.rubrica));
                             return (
                                 <div key={ev.id} className="ev-grupo-card">
                                     <div className="ev-grupo-header">
-                                        <h3>{curso?.name || 'Grupo'}</h3>
-                                        <p>{rubrica?.titulo || 'Sin rúbrica'}</p>
+                                        <h3>{curso?.name || ev.grupo_nombre || `Grupo ${ev.grupo_agon_id}`}</h3>
+                                        <p>{rubrica?.titulo || `Rúbrica ${ev.rubrica}`}</p>
                                     </div>
                                     <div className="ev-grupo-body">
                                         <div style={{ fontSize:'0.75rem', color:'#64748b', marginBottom:'0.75rem' }}>
                                             {rubrica?.criterios?.length || 0} criterios · {curso?.students?.length || 0} estudiantes
                                         </div>
-                                        <button className="eval-btn-primary" style={{ width:'100%', justifyContent:'center' }}
-                                            onClick={() => onEvaluar(ev, curso)}>
-                                            Evaluar Estudiantes <ChevronRight size={15}/>
-                                        </button>
+                                        <div style={{ display:'flex', gap:'8px' }}>
+                                            <button className="eval-btn-primary" style={{ flex:1, justifyContent:'center' }}
+                                                onClick={() => handleEvaluar(ev)}>
+                                                Evaluar Estudiantes <ChevronRight size={15}/>
+                                            </button>
+                                            <button title="Eliminar evaluación" onClick={() => handleEliminar(ev.id)}
+                                                style={{ background:'#fee2e2', border:'none', color:'#dc2626', cursor:'pointer', padding:'8px 10px', borderRadius:'10px', display:'flex', alignItems:'center' }}>
+                                                <Trash2 size={14}/>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             );

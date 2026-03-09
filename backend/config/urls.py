@@ -34,6 +34,13 @@ def debug_test(request):
     results['agon_url'] = getattr(settings, 'AGON_API_URL', 'NOT SET')
     results['ilinyx_key_set'] = bool(getattr(settings, 'ILINYX_API_KEY', ''))
     results['database_engine'] = settings.DATABASES['default']['ENGINE']
+    results['database_host'] = settings.DATABASES['default'].get('HOST', 'default')
+    results['database_name'] = settings.DATABASES['default'].get('NAME', 'default')
+    try:
+        from actas.models import ActaReunion
+        results['reuniones_count'] = ActaReunion.objects.count()
+    except Exception as e:
+        results['reuniones_error'] = str(e)
 
     return JsonResponse(results)
 # === FIN DEBUG ===

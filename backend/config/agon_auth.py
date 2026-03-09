@@ -51,10 +51,10 @@ class AgonJWTAuthentication(BaseAuthentication):
             resp = http_requests.get(
                 f'{agon_url}/users/me/',
                 headers={'Authorization': f'Bearer {token}'},
-                timeout=10,
+                timeout=5,  # Máximo 5s — no bloquear la app si AGON es lento
             )
-        except http_requests.RequestException:
-            raise AuthenticationFailed('No se pudo conectar con AGON para validar el token.')
+        except http_requests.RequestException as e:
+            raise AuthenticationFailed(f'AGON no disponible: {type(e).__name__}')
 
         if resp.status_code != 200:
             raise AuthenticationFailed('Token inválido o expirado en AGON.')

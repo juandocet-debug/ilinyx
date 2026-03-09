@@ -1,13 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { agonApi } from '../services/api';
+import api from '../services/api';
 
 const UserContext = createContext(null);
 
-/**
- * Decodifica el payload del JWT sin necesidad de red.
- * El token ya contiene id, username, email, role, etc.
- * La validación real de seguridad ocurre en el backend de Ilinyx.
- */
 function decodeJWT(token) {
     try {
         const base64Url = token.split('.')[1];
@@ -16,9 +12,7 @@ function decodeJWT(token) {
             atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
         );
         return JSON.parse(json);
-    } catch {
-        return null;
-    }
+    } catch { return null; }
 }
 
 function tokenExpirado(payload) {
@@ -32,28 +26,32 @@ export function UserProvider({ children }) {
 
     const cargarDesdeToken = (token) => {
         const payload = decodeJWT(token);
-        if (!payload) return null;
-        if (tokenExpirado(payload)) return null;
-        // El JWT de AGON incluye estos campos en el payload
+        if (!payload || tokenExpirado(payload)) return null;
+        // AGON JWT estándar solo incluye user_id + exp; los demás campos pueden no estar
         return {
-            id:         payload.user_id || payload.id,
-            pk:         payload.user_id || payload.id,
+            id:         payload.user_id || payload.id || null,
+            pk:         payload.user_id || payload.id || null,
             username:   payload.username || '',
             email:      payload.email || '',
             first_name: payload.first_name || '',
             last_name:  payload.last_name || '',
             role:       payload.role || '',
+            photo:      payload.photo || null,
             is_staff:   payload.is_staff || false,
         };
     };
 
-    // Login: obtiene el JWT de AGON y decodifica localmente los datos del usuario
     const login = async (username, password) => {
         const { data } = await agonApi.post('/token/', { username, password });
         localStorage.setItem('ilinyx_token', data.access);
         localStorage.setItem('ilinyx_refresh', data.refresh);
-        const userData = cargarDesdeToken(data.access);
-        setUser(userData);
+        const base = cargarDesdeToken(data.access);
+        setUser(base);
+        // Fetch perfil completo en background
+        try {
+            const r = await api.get('/auth/me/');
+            setUser(prev => ({ ...prev, ...r.data }));
+        } catch {}
         return data;
     };
 
@@ -63,20 +61,25 @@ export function UserProvider({ children }) {
         setUser(null);
     };
 
-    // Al montar: leer el token del localStorage e información instantáneamente (sin red)
     useEffect(() => {
         const token = localStorage.getItem('ilinyx_token');
         if (token) {
-            const userData = cargarDesdeToken(token);
-            if (userData) {
-                setUser(userData);
+            const base = cargarDesdeToken(token);
+            if (base) {
+                setUser(base);                       // ← UI visible inmediatamente
+                setLoading(false);
+                // Fetch perfil completo en background (no bloquea la UI)
+                api.get('/auth/me/')
+                   .then(r => setUser(prev => ({ ...prev, ...r.data })))
+                   .catch(() => {});                 // silencioso si AGON falla
             } else {
-                // Token expirado o inválido → limpiar y mostrar login
                 localStorage.removeItem('ilinyx_token');
                 localStorage.removeItem('ilinyx_refresh');
+                setLoading(false);
             }
+        } else {
+            setLoading(false);
         }
-        setLoading(false); // Siempre termina inmediatamente
     }, []);
 
     return (

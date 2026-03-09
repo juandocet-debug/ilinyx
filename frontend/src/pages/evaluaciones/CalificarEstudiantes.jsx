@@ -193,10 +193,10 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                                                 </div>
                                             </div>
                                         </button>
-                                        {/* Botón editar solo si ya está guardado */}
-                                        {saved && (
+                                        {/* Botón editar: aparece si ya está guardado O si hay nota cargada del DB */}
+                                        {(saved || calcPromedio(est.id) > 0) && (
                                             <button title="Editar calificación"
-                                                onClick={() => setEditando(p => ({ ...p, [est.id]: true }))}
+                                                onClick={() => { setEstudianteActivo(est); setEditando(p => ({ ...p, [est.id]: true })); }}
                                                 style={{ background: enEdicion ? '#ede9fe' : '#f1f5f9', border:'none', color: enEdicion ? '#7c3aed' : '#64748b', cursor:'pointer', padding:'6px', borderRadius:'8px', display:'flex', flexShrink:0, transition:'all 0.15s' }}>
                                                 <Edit2 size={13}/>
                                             </button>

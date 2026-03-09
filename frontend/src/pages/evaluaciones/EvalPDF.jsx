@@ -122,13 +122,13 @@ export default function EvalPDF({ rubrica, curso, puntajes, calcPromedio, onClos
                                                     return (
                                                         <td key={v} style={{
                                                             padding:'8px',
-                                                            background: isSelected ? `${NIVEL_COLORS[v]}18` : 'transparent',
-                                                            border: isSelected ? `2px solid ${NIVEL_COLORS[v]}` : '1px solid transparent',
-                                                            borderRadius:'6px', fontSize:'0.72rem', color: isSelected ? NIVEL_COLORS[v] : '#374151',
+                                                            background: isSelected ? `${NIVEL_COLORS[v]}22` : 'transparent',
+                                                            border: isSelected ? `2.5px solid ${NIVEL_COLORS[v]}` : '1px solid #e2e8f0',
+                                                            borderRadius:'6px', fontSize:'0.72rem',
+                                                            color: isSelected ? NIVEL_COLORS[v] : '#374151',
                                                             fontWeight: isSelected ? 700 : 400, verticalAlign:'top',
                                                         }}>
                                                             {nivel?.descripcion || '—'}
-                                                            {isSelected && <span style={{ display:'block', fontWeight:900, marginTop:'4px' }}>▶ Seleccionado</span>}
                                                         </td>
                                                     );
                                                 })}

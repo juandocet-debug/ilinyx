@@ -81,7 +81,14 @@ def fetch_agon_courses(request):
                 'agon_status': resp.status_code,
                 'agon_response': resp.text[:500],
             })
-        return Response(resp.json())
+        all_courses = resp.json()
+        # Filtrar solo los cursos donde el docente es el usuario logueado
+        teacher_id = getattr(request.user, 'id', None)
+        if teacher_id:
+            filtered = [c for c in all_courses if c.get('teacher_id') == teacher_id]
+        else:
+            filtered = all_courses
+        return Response(filtered)
     except http_requests.exceptions.ConnectionError as e:
         return Response({'detail': f'No se pudo conectar a AGON: {str(e)[:200]}'}, status=502)
     except http_requests.exceptions.Timeout:

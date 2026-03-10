@@ -161,9 +161,10 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                 {/* ── Sección por estudiante ── */}
                 {estudiantes.map((est, idx) => {
                     const profeAvg = calcPromedio(est.id);
+                    // Nota final SOLO si el evaluador dio puntaje — la referencia no cuenta por sí sola
                     const notaFinal = (profeAvg > 0 && promedioRef > 0)
                         ? (profeAvg + promedioRef) / 2
-                        : profeAvg || promedioRef;
+                        : profeAvg;  // si no hay nota de evaluador, nota final = 0 (sin calificar)
 
                     return (
                         <div key={est.id} style={{ marginBottom: 28, pageBreakInside: 'avoid' }}>
@@ -188,15 +189,24 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                                     </p>
                                 </div>
 
-                                {/* Notas */}
+                                {/* Notas — Nota Final solo si el evaluador calificó */}
                                 <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexShrink: 0 }}>
                                     {profeAvg > 0 && <NotaCircle val={profeAvg} label="Evaluador" size={50} />}
                                     {promedioRef > 0 && <NotaCircle val={promedioRef} label="Referencia" size={50} />}
-                                    {(profeAvg > 0 || promedioRef > 0) && (
+                                    {profeAvg > 0 && (
                                         <>
                                             <div style={{ width: 1, height: 48, background: '#E2E8F0' }} />
-                                            <NotaCircle val={notaFinal || 0} label="Nota Final" size={58} />
+                                            <NotaCircle val={notaFinal} label="Nota Final" size={58} />
                                         </>
+                                    )}
+                                    {profeAvg === 0 && (
+                                        <span style={{
+                                            fontSize: '0.72rem', color: '#94A3B8', fontStyle: 'italic',
+                                            padding: '6px 12px', background: '#F8FAFC',
+                                            border: '1px solid #E2E8F0', borderRadius: 8,
+                                        }}>
+                                            Sin evaluar
+                                        </span>
                                     )}
                                 </div>
                             </div>

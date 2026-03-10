@@ -119,15 +119,19 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
     // Reinicia TODAS las notas del grupo — limpia datos corruptos del bug anterior
     const reiniciarGrupo = async () => {
         const total = Object.keys(guardados).length;
-        if (!window.confirm(`⚠️ ¿Reiniciar TODAS las ${total} calificaciones de este grupo?\n\nEsto borrará permanentemente las notas del sistema. Úsalo solo si los datos están corruptos.`)) return;
+        if (!window.confirm(`⚠️ ¿Reiniciar TODAS las calificaciones de este grupo?\n\nEsto borrará las notas del sistema Y los puntajes de referencia colectiva.\nÚsalo solo si los datos están corruptos.`)) return;
         try {
             await api.delete('/evaluaciones/calificaciones/reiniciar_grupo/', {
                 data: { evaluacion_grupo: evaluacion.id }
             });
+            // Limpiar estado individual
             setPuntajes({});
             setGuardados({});
             setEditando({});
-            alert(`✓ ${total} calificaciones eliminadas. Ya puedes evaluar a cada estudiante individualmente.`);
+            // Limpiar también referencia colectiva
+            setRefPuntajes({});
+            localStorage.removeItem(REF_KEY);
+            alert(`✓ Grupo reiniciado. Ya puedes evaluar a cada estudiante individualmente.`);
         } catch (e) {
             alert('Error al reiniciar: ' + (e?.response?.data?.error || e.message));
         }

@@ -87,6 +87,14 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
 
     const puedeEditar = (uid) => !guardados[uid] || editando[uid];
 
+    // colScores: puntaje de referencia colectiva por criterio
+    // (valor único si todos coinciden, 0 si difieren)
+    const colScores = rubrica?.criterios?.reduce((acc, c) => {
+        const vals = todosEstudiantes.map(e => puntajes[e.id]?.[c.id]);
+        acc[c.id] = vals.every(v => v !== undefined && v === vals[0]) ? vals[0] || 0 : 0;
+        return acc;
+    }, {}) || {};
+
     if (!rubrica) return <div className="eval-empty"><p>Cargando rúbrica...</p></div>;
 
     if (showPDF) {
@@ -95,17 +103,13 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                 rubrica={rubrica}
                 curso={curso}
                 puntajes={puntajes}
+                colScores={colScores}
                 calcPromedio={calcPromedio}
                 onClose={() => setShowPDF(false)}
             />
         );
     }
 
-    const colScores = rubrica.criterios?.reduce((acc, c) => {
-        const vals = todosEstudiantes.map(e => puntajes[e.id]?.[c.id]);
-        acc[c.id] = vals.every(v => v !== undefined && v === vals[0]) ? vals[0] || 0 : 0;
-        return acc;
-    }, {});
 
     return (
         <div className="eval-page">

@@ -64,6 +64,11 @@ class EvaluacionGrupo(models.Model):
 class Calificacion(models.Model):
     evaluacion_grupo = models.ForeignKey(EvaluacionGrupo, on_delete=models.CASCADE, related_name='calificaciones')
     usuario_agon_id = models.IntegerField(verbose_name="ID Estudiante (Agon)")
+    evaluador_id = models.IntegerField(
+        verbose_name="ID Evaluador (Agon)",
+        default=0,
+        help_text="ID del docente o invitado que registró esta calificación"
+    )
     # puntajes: { "criterio_id": valor_seleccionado }
     puntajes = models.JSONField(default=dict)
     nota_final = models.DecimalField(max_digits=4, decimal_places=2, default=0.0)
@@ -72,7 +77,9 @@ class Calificacion(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('evaluacion_grupo', 'usuario_agon_id')
+        # Cada evaluador tiene su propia calificación por estudiante en cada evaluación
+        # Así el docente y el invitado no se pisan entre sí.
+        unique_together = ('evaluacion_grupo', 'usuario_agon_id', 'evaluador_id')
 
     def __str__(self):
-        return f"Calificación usuario {self.usuario_agon_id} — eval {self.evaluacion_grupo_id}"
+        return f"Calificación usuario {self.usuario_agon_id} por evaluador {self.evaluador_id} — eval {self.evaluacion_grupo_id}"

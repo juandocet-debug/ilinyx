@@ -126,6 +126,7 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         obj, created = Calificacion.objects.update_or_create(
             evaluacion_grupo_id=evaluacion_grupo_id,
             usuario_agon_id=usuario_agon_id,
+            evaluador_id=0,  # siempre 0 — unívoco por estudiante
             defaults={
                 'puntajes': puntajes,
                 'nota_final': nota_final,

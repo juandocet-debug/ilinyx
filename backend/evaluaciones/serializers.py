@@ -77,5 +77,5 @@ class EvaluacionGrupoSerializer(serializers.ModelSerializer):
 class CalificacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Calificacion
-        fields = ['id', 'evaluacion_grupo', 'usuario_agon_id', 'puntajes', 'nota_final', 'comentarios', 'created_at', 'updated_at']
+        fields = ['id', 'evaluacion_grupo', 'usuario_agon_id', 'evaluador_id', 'puntajes', 'nota_final', 'comentarios', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']

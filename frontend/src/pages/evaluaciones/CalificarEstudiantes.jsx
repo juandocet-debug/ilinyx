@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Search, CheckCircle, Users, User, Edit2, Download } from 'lucide-react';
+import { ArrowLeft, Search, CheckCircle, Users, User, Edit2, Download, Info } from 'lucide-react';
 import api from '../../services/api';
 import RubricaGrid from './RubricaGrid';
 import EvalPDF from './EvalPDF';
@@ -85,25 +85,6 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
         }
     };
 
-    const guardarTodos = async () => {
-        setSaving(true);
-        try {
-            for (const e of todosEstudiantes) {
-                await api.post('/evaluaciones/calificaciones/guardar_batch/', {
-                    evaluacion_grupo: evaluacion.id,
-                    usuario_agon_id: e.id,
-                    puntajes: puntajes[e.id] || {},
-                    nota_final: parseFloat(calcPromedio(e.id).toFixed(2)),
-                });
-                setGuardados(p => ({ ...p, [e.id]: true }));
-            }
-        } catch (e) {
-            console.error('Error guardando colectivo:', e?.response?.data || e.message);
-        } finally {
-            setSaving(false);
-        }
-    };
-
     const puedeEditar = (uid) => !guardados[uid] || editando[uid];
 
     if (!rubrica) return <div className="eval-empty"><p>Cargando rúbrica...</p></div>;
@@ -149,13 +130,18 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
             {modo === 'colectivo' ? (
                 <div className="eval-card" style={{ padding:0, overflow:'hidden' }}>
                     <div style={{ padding:'1rem 1.25rem', background:'linear-gradient(135deg,#1e1b4b,#312e81)', color:'#fff' }}>
-                        <h3 style={{ margin:0, fontSize:'0.95rem', fontWeight:700 }}>Evaluación Colectiva — {todosEstudiantes.length} estudiantes</h3>
+                        <h3 style={{ margin:0, fontSize:'0.95rem', fontWeight:700 }}>Referencia Colectiva — {todosEstudiantes.length} estudiantes</h3>
+                        <p style={{ margin:'4px 0 0', fontSize:'0.73rem', color:'#a5b4fc' }}>
+                            Ingresa puntajes de referencia. Para guardar, ve al modo Individual.
+                        </p>
                     </div>
                     <RubricaGrid criterios={rubrica.criterios} scores={colScores} onScore={(cid, val) => setScoreCol(cid, val)} />
-                    <div style={{ padding:'1rem 1.25rem', borderTop:'1px solid #f1f5f9', display:'flex', justifyContent:'flex-end' }}>
-                        <button className="eval-btn-primary" onClick={guardarTodos} disabled={saving}>
-                            {saving ? 'Guardando...' : <><CheckCircle size={15}/> Guardar para todos</>}
-                        </button>
+                    {/* Aviso — no hay botón guardar aquí a propósito */}
+                    <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f1f5f9', display:'flex', alignItems:'center', gap:'8px', background:'#fffbeb' }}>
+                        <Info size={14} style={{ color:'#d97706', flexShrink:0 }}/>
+                        <span style={{ fontSize:'0.75rem', color:'#92400e' }}>
+                            Los puntajes ingresados aquí se reflejan en cada estudiante en modo <strong>Individual</strong>. Guarda desde allí.
+                        </span>
                     </div>
                 </div>
             ) : (

@@ -137,10 +137,7 @@ class CalificacionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['delete'], url_path='eliminar_calificacion')
     def eliminar_calificacion(self, request):
-        """
-        Elimina la calificación de un estudiante para reiniciarla.
-        Acepta: { evaluacion_grupo: id, usuario_agon_id: id }
-        """
+        """Elimina la calificación de UN estudiante para reiniciarla."""
         evaluacion_grupo_id = request.data.get('evaluacion_grupo')
         usuario_agon_id     = request.data.get('usuario_agon_id')
         if not evaluacion_grupo_id or not usuario_agon_id:
@@ -148,6 +145,17 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         deleted, _ = Calificacion.objects.filter(
             evaluacion_grupo_id=evaluacion_grupo_id,
             usuario_agon_id=usuario_agon_id,
+        ).delete()
+        return Response({'deleted': deleted}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['delete'], url_path='reiniciar_grupo')
+    def reiniciar_grupo(self, request):
+        """Borra TODAS las calificaciones de una evaluación — úsese para limpiar datos corruptos."""
+        evaluacion_grupo_id = request.data.get('evaluacion_grupo')
+        if not evaluacion_grupo_id:
+            return Response({'error': 'Se requiere evaluacion_grupo'}, status=status.HTTP_400_BAD_REQUEST)
+        deleted, _ = Calificacion.objects.filter(
+            evaluacion_grupo_id=evaluacion_grupo_id,
         ).delete()
         return Response({'deleted': deleted}, status=status.HTTP_200_OK)
 

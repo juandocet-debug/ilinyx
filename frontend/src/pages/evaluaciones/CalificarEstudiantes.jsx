@@ -116,6 +116,22 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
 
     const puedeEditar = (uid) => !guardados[uid] || editando[uid];
 
+    // Reinicia TODAS las notas del grupo — limpia datos corruptos del bug anterior
+    const reiniciarGrupo = async () => {
+        const total = Object.keys(guardados).length;
+        if (!window.confirm(`⚠️ ¿Reiniciar TODAS las ${total} calificaciones de este grupo?\n\nEsto borrará permanentemente las notas del sistema. Úsalo solo si los datos están corruptos.`)) return;
+        try {
+            await api.delete('/evaluaciones/calificaciones/reiniciar_grupo/', {
+                data: { evaluacion_grupo: evaluacion.id }
+            });
+            setPuntajes({});
+            setGuardados({});
+            setEditando({});
+            alert(`✓ ${total} calificaciones eliminadas. Ya puedes evaluar a cada estudiante individualmente.`);
+        } catch (e) {
+            alert('Error al reiniciar: ' + (e?.response?.data?.error || e.message));
+        }
+    };
 
     if (!rubrica) return <div className="eval-empty"><p>Cargando rúbrica...</p></div>;
 
@@ -149,6 +165,15 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                 <button className="eval-btn-ghost" onClick={() => setShowPDF(true)}>
                     <Download size={14}/> Descargar PDF
                 </button>
+                {/* Botón reiniciar — solo visible si hay notas guardadas */}
+                {Object.keys(guardados).length > 0 && (
+                    <button
+                        onClick={reiniciarGrupo}
+                        style={{ background:'#fff1f2', border:'1px solid #fecdd3', color:'#e11d48', borderRadius:'8px', padding:'6px 12px', cursor:'pointer', fontSize:'0.78rem', fontWeight:700, display:'flex', alignItems:'center', gap:'6px' }}
+                        title="Borra todas las calificaciones del grupo (úsalo si los datos están corruptos)">
+                        ⚠️ Reiniciar notas del grupo ({Object.keys(guardados).length})
+                    </button>
+                )}
                 <div className="eval-tabs">
                     <button className={modo==='individual'?'active':''} onClick={() => setModo('individual')}><User size={13} style={{marginRight:4}}/> Individual</button>
                     <button className={modo==='colectivo'?'active':''} onClick={() => setModo('colectivo')}><Users size={13} style={{marginRight:4}}/> Colectivo</button>

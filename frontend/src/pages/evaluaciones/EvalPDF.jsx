@@ -111,7 +111,8 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
     const valMax = Math.max(...[...valoresSet]);
 
     const hayRef = rubrica.criterios?.some(c => (colScores[c.id] || 0) > 0);
-    const promedioRef = hayRef ? calcPromedioRef(rubrica.criterios, colScores) : 0;
+    // promedioRef siempre calculado (puede ser 0 si no hay referencia)
+    const promedioRef = calcPromedioRef(rubrica.criterios, colScores);
 
     const fecha = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -145,18 +146,16 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                         &nbsp;·&nbsp;Escala {valMin}–{valMax}
                         &nbsp;·&nbsp;{fecha}
                     </p>
-                    {hayRef && (
-                        <div style={{ marginTop: 8, display: 'flex', gap: 16, fontSize: '0.68rem' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#6366F1', display: 'inline-block' }} />
-                                <span style={{ color: '#475569' }}>Evaluador (tú)</span>
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#0EA5E9', display: 'inline-block' }} />
-                                <span style={{ color: '#475569' }}>Referencia colectiva</span>
-                            </span>
-                        </div>
-                    )}
+                    <div style={{ marginTop: 8, display: 'flex', gap: 16, fontSize: '0.68rem' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#6366F1', display: 'inline-block' }} />
+                            <span style={{ color: '#475569' }}>Evaluador (docente)</span>
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#0EA5E9', display: 'inline-block' }} />
+                            <span style={{ color: '#475569' }}>Referencia colectiva</span>
+                        </span>
+                    </div>
                 </div>
 
                 {/* ── Sección por estudiante ── */}
@@ -192,7 +191,7 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                                 {/* Notas */}
                                 <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexShrink: 0 }}>
                                     {profeAvg > 0 && <NotaCircle val={profeAvg} label="Evaluador" size={50} />}
-                                    {hayRef && promedioRef > 0 && <NotaCircle val={promedioRef} label="Referencia" size={50} />}
+                                    {promedioRef > 0 && <NotaCircle val={promedioRef} label="Referencia" size={50} />}
                                     {(profeAvg > 0 || promedioRef > 0) && (
                                         <>
                                             <div style={{ width: 1, height: 48, background: '#E2E8F0' }} />
@@ -211,11 +210,10 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                                         <th style={{ padding: '7px 10px', textAlign: 'left', color: '#4338CA', fontWeight: 700, borderBottom: '2px solid #C7D2FE', background: '#EEF2FF' }}>
                                             Nivel alcanzado — Evaluador
                                         </th>
-                                        {hayRef && (
-                                            <th style={{ padding: '7px 10px', textAlign: 'left', color: '#0369A1', fontWeight: 700, borderBottom: '2px solid #BAE6FD', background: '#F0F9FF' }}>
-                                                Nivel alcanzado — Referencia
-                                            </th>
-                                        )}
+                                        {/* Columna Referencia — SIEMPRE visible */}
+                                        <th style={{ padding: '7px 10px', textAlign: 'left', color: '#0369A1', fontWeight: 700, borderBottom: '2px solid #BAE6FD', background: '#F0F9FF' }}>
+                                            Nivel alcanzado — Referencia
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -243,17 +241,21 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                                                         </p>
                                                     )}
                                                 </td>
-                                                {/* Referencia */}
-                                                {hayRef && (
-                                                    <td style={{ padding: '9px 10px', background: selR ? '#F0F9FF' : 'transparent', verticalAlign: 'top' }}>
-                                                        <NivelPill val={selR} small />
-                                                        {nivelR?.descripcion && (
-                                                            <p style={{ margin: '4px 0 0', fontSize: '0.67rem', color: '#0369A1', lineHeight: 1.45 }}>
-                                                                {nivelR.descripcion}
-                                                            </p>
-                                                        )}
-                                                    </td>
-                                                )}
+                                                {/* Referencia — SIEMPRE visible */}
+                                                <td style={{ padding: '9px 10px', background: selR ? '#F0F9FF' : '#FAFCFF', verticalAlign: 'top' }}>
+                                                    {selR ? (
+                                                        <>
+                                                            <NivelPill val={selR} small />
+                                                            {nivelR?.descripcion && (
+                                                                <p style={{ margin: '4px 0 0', fontSize: '0.67rem', color: '#0369A1', lineHeight: 1.45 }}>
+                                                                    {nivelR.descripcion}
+                                                                </p>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span style={{ fontSize: '0.67rem', color: '#CBD5E1', fontStyle: 'italic' }}>Sin referencia</span>
+                                                    )}
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -271,16 +273,19 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                                                 </span>
                                             )}
                                         </td>
-                                        {hayRef && (
-                                            <td style={{ padding: '9px 10px', background: '#F0F9FF' }}>
-                                                <NivelPill val={promedioRef > 0 ? Math.round(promedioRef) : 0} small />
-                                                {promedioRef > 0 && (
+                                        {/* Promedio Referencia — SIEMPRE visible */}
+                                        <td style={{ padding: '9px 10px', background: '#F0F9FF' }}>
+                                            {promedioRef > 0 ? (
+                                                <>
+                                                    <NivelPill val={Math.round(promedioRef)} small />
                                                     <span style={{ marginLeft: 8, fontWeight: 800, color: '#0369A1', fontSize: '0.8rem' }}>
                                                         {promedioRef.toFixed(2)}
                                                     </span>
-                                                )}
-                                            </td>
-                                        )}
+                                                </>
+                                            ) : (
+                                                <span style={{ fontSize: '0.7rem', color: '#CBD5E1', fontStyle: 'italic' }}>Sin referencia</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>

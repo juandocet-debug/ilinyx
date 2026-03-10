@@ -16,6 +16,8 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
     const [saving, setSaving] = useState(false);
     const [showPDF, setShowPDF] = useState(false);
 
+    const REF_KEY = `ilinyx_ref_${evaluacion.id}`; // clave en localStorage
+
     const todosEstudiantes = curso?.students || [];
     const estudiantes = busqueda.trim()
         ? todosEstudiantes.filter(e => {
@@ -26,7 +28,15 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
         : todosEstudiantes;
 
     // Cargar rubrica + calificaciones existentes del DB
+    // + cargar referencia colectiva desde localStorage
     useEffect(() => {
+        // 1) Cargar referencia colectiva persistida
+        try {
+            const stored = localStorage.getItem(REF_KEY);
+            if (stored) setRefPuntajes(JSON.parse(stored));
+        } catch {}
+
+        // 2) Cargar rúbrica y calificaciones
         Promise.all([
             api.get(`/evaluaciones/rubricas/${evaluacion.rubrica}/`),
             api.get(`/evaluaciones/calificaciones/?evaluacion_id=${evaluacion.id}`),
@@ -48,6 +58,13 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
             if (todosEstudiantes.length) setEstudianteActivo(todosEstudiantes[0]);
         });
     }, []);
+
+    // Persistir referencia colectiva en localStorage cada vez que cambia
+    useEffect(() => {
+        if (Object.keys(refPuntajes).length > 0) {
+            localStorage.setItem(REF_KEY, JSON.stringify(refPuntajes));
+        }
+    }, [refPuntajes]);
 
     // Nota individual por estudiante
     const setScore = (uid, cid, val) =>
@@ -136,14 +153,22 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                         scores={refPuntajes}
                         onScore={(cid, val) => setScoreRef(cid, val)}
                     />
-                    <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f1f5f9', display:'flex', alignItems:'center', gap:'8px', background:'#fffbeb' }}>
-                        <Info size={14} style={{ color:'#d97706', flexShrink:0 }}/>
-                        <span style={{ fontSize:'0.75rem', color:'#92400e' }}>
-                            {hayRef
-                                ? <>✓ Puntajes de referencia listos — aparecerán en el <strong>PDF</strong>.</>
-                                : <>Selecciona puntajes por criterio. No se guardan en base de datos.</>
-                            }
-                        </span>
+                    <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f1f5f9', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'8px', background: hayRef ? '#f0fdf4' : '#fffbeb' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                            <Info size={14} style={{ color: hayRef ? '#16a34a' : '#d97706', flexShrink:0 }}/>
+                            <span style={{ fontSize:'0.75rem', color: hayRef ? '#166534' : '#92400e' }}>
+                                {hayRef
+                                    ? <>✓ Referencia guardada: <strong>{rubrica.criterios?.filter(c => (refPuntajes[c.id] || 0) > 0).length}/{rubrica.criterios?.length}</strong> criterios · Se verá en el PDF.</>
+                                    : <>Selecciona puntajes por criterio. Se guardan automáticamente y aparecen en el PDF.</>
+                                }
+                            </span>
+                        </div>
+                        {hayRef && (
+                            <button onClick={() => { setRefPuntajes({}); localStorage.removeItem(REF_KEY); }}
+                                style={{ fontSize:'0.7rem', color:'#dc2626', background:'#fee2e2', border:'none', borderRadius:'6px', padding:'4px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                                Limpiar referencia
+                            </button>
+                        )}
                     </div>
                 </div>
             ) : (

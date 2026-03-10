@@ -99,7 +99,23 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
         }
     };
 
+    // Reinicia la nota de un estudiante — útil para limpiar datos corruptos del bug anterior
+    const reiniciarNota = async (uid, nombre) => {
+        if (!window.confirm(`¿Reiniciar la nota de ${nombre}? Esto borrará su calificación del sistema y podrás grabilarla de nuevo.`)) return;
+        try {
+            await api.delete('/evaluaciones/calificaciones/eliminar_calificacion/', {
+                data: { evaluacion_grupo: evaluacion.id, usuario_agon_id: uid }
+            });
+            setPuntajes(p => { const n = { ...p }; delete n[uid]; return n; });
+            setGuardados(p => { const n = { ...p }; delete n[uid]; return n; });
+            setEditando(p => { const n = { ...p }; delete n[uid]; return n; });
+        } catch (e) {
+            alert('Error al reiniciar: ' + (e?.response?.data?.error || e.message));
+        }
+    };
+
     const puedeEditar = (uid) => !guardados[uid] || editando[uid];
+
 
     if (!rubrica) return <div className="eval-empty"><p>Cargando rúbrica...</p></div>;
 
@@ -211,6 +227,15 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                                                 onClick={() => { setEstudianteActivo(est); setEditando(p => ({ ...p, [est.id]: true })); }}
                                                 style={{ background: enEdicion ? '#ede9fe' : '#f1f5f9', border:'none', color: enEdicion ? '#7c3aed' : '#64748b', cursor:'pointer', padding:'6px', borderRadius:'8px', display:'flex', flexShrink:0, transition:'all 0.15s' }}>
                                                 <Edit2 size={13}/>
+                                            </button>
+                                        )}
+                                        {/* Botón reiniciar — solo si ya está guardado en DB */}
+                                        {saved && (
+                                            <button
+                                                title="Reiniciar nota (borrar del sistema)"
+                                                onClick={() => reiniciarNota(est.id, `${est.first_name} ${est.last_name}`)}
+                                                style={{ background:'#fff1f2', border:'none', color:'#f43f5e', cursor:'pointer', padding:'6px', borderRadius:'8px', display:'flex', flexShrink:0, transition:'all 0.15s' }}>
+                                                🗑
                                             </button>
                                         )}
                                     </div>

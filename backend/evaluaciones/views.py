@@ -134,3 +134,20 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         )
         code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(CalificacionSerializer(obj).data, status=code)
+
+    @action(detail=False, methods=['delete'], url_path='eliminar_calificacion')
+    def eliminar_calificacion(self, request):
+        """
+        Elimina la calificación de un estudiante para reiniciarla.
+        Acepta: { evaluacion_grupo: id, usuario_agon_id: id }
+        """
+        evaluacion_grupo_id = request.data.get('evaluacion_grupo')
+        usuario_agon_id     = request.data.get('usuario_agon_id')
+        if not evaluacion_grupo_id or not usuario_agon_id:
+            return Response({'error': 'Faltan parámetros'}, status=status.HTTP_400_BAD_REQUEST)
+        deleted, _ = Calificacion.objects.filter(
+            evaluacion_grupo_id=evaluacion_grupo_id,
+            usuario_agon_id=usuario_agon_id,
+        ).delete()
+        return Response({'deleted': deleted}, status=status.HTTP_200_OK)
+

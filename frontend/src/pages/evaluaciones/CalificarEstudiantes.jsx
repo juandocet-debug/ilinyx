@@ -9,9 +9,10 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
     const [modo, setModo] = useState('individual');
     const [busqueda, setBusqueda] = useState('');
     const [estudianteActivo, setEstudianteActivo] = useState(null);
-    const [puntajes, setPuntajes] = useState({});    // { uid: { cid: valor } }
-    const [guardados, setGuardados] = useState({});   // { uid: true }
-    const [editando, setEditando] = useState({});    // { uid: true } unlock edit
+    const [puntajes, setPuntajes] = useState({});     // { uid: { cid: valor } } — notas individuales
+    const [refPuntajes, setRefPuntajes] = useState({}); // { cid: valor }         — referencia colectiva (separada)
+    const [guardados, setGuardados] = useState({});    // { uid: true }
+    const [editando, setEditando] = useState({});      // { uid: true }
     const [saving, setSaving] = useState(false);
     const [showPDF, setShowPDF] = useState(false);
 
@@ -35,7 +36,6 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
             const pMap = {};
             const gMap = {};
             cals.forEach(c => {
-                // puntajes del DB tienen claves como strings → convertir a number
                 const normalized = {};
                 Object.entries(c.puntajes || {}).forEach(([k, v]) => {
                     normalized[parseInt(k)] = v;
@@ -49,16 +49,13 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
         });
     }, []);
 
+    // Nota individual por estudiante
     const setScore = (uid, cid, val) =>
         setPuntajes(p => ({ ...p, [uid]: { ...(p[uid] || {}), [cid]: val } }));
 
-    const setScoreCol = (cid, val) => {
-        const update = {};
-        todosEstudiantes.forEach(e => {
-            update[e.id] = { ...(puntajes[e.id] || {}), [cid]: val };
-        });
-        setPuntajes(p => ({ ...p, ...update }));
-    };
+    // Nota de referencia colectiva — estado SEPARADO, no toca puntajes individuales
+    const setScoreRef = (cid, val) =>
+        setRefPuntajes(p => ({ ...p, [cid]: val }));
 
     const calcPromedio = useCallback((uid) => {
         if (!rubrica?.criterios?.length) return 0;
@@ -87,14 +84,6 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
 
     const puedeEditar = (uid) => !guardados[uid] || editando[uid];
 
-    // colScores: puntaje de referencia colectiva por criterio
-    // (valor único si todos coinciden, 0 si difieren)
-    const colScores = rubrica?.criterios?.reduce((acc, c) => {
-        const vals = todosEstudiantes.map(e => puntajes[e.id]?.[c.id]);
-        acc[c.id] = vals.every(v => v !== undefined && v === vals[0]) ? vals[0] || 0 : 0;
-        return acc;
-    }, {}) || {};
-
     if (!rubrica) return <div className="eval-empty"><p>Cargando rúbrica...</p></div>;
 
     if (showPDF) {
@@ -103,13 +92,15 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                 rubrica={rubrica}
                 curso={curso}
                 puntajes={puntajes}
-                colScores={colScores}
+                colScores={refPuntajes}   // ← referencia colectiva independiente
                 calcPromedio={calcPromedio}
                 onClose={() => setShowPDF(false)}
             />
         );
     }
 
+    // Para el display del grid colectivo: mostrar refPuntajes
+    const hayRef = rubrica.criterios?.some(c => (refPuntajes[c.id] || 0) > 0);
 
     return (
         <div className="eval-page">
@@ -134,17 +125,24 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
             {modo === 'colectivo' ? (
                 <div className="eval-card" style={{ padding:0, overflow:'hidden' }}>
                     <div style={{ padding:'1rem 1.25rem', background:'linear-gradient(135deg,#1e1b4b,#312e81)', color:'#fff' }}>
-                        <h3 style={{ margin:0, fontSize:'0.95rem', fontWeight:700 }}>Referencia Colectiva — {todosEstudiantes.length} estudiantes</h3>
+                        <h3 style={{ margin:0, fontSize:'0.95rem', fontWeight:700 }}>Referencia Colectiva</h3>
                         <p style={{ margin:'4px 0 0', fontSize:'0.73rem', color:'#a5b4fc' }}>
-                            Ingresa puntajes de referencia. Para guardar, ve al modo Individual.
+                            Ingresa los puntajes de referencia. Aparecerán en el PDF junto a las notas individuales.
                         </p>
                     </div>
-                    <RubricaGrid criterios={rubrica.criterios} scores={colScores} onScore={(cid, val) => setScoreCol(cid, val)} />
-                    {/* Aviso — no hay botón guardar aquí a propósito */}
+                    {/* Grid muestra refPuntajes — completamente separado de los individuales */}
+                    <RubricaGrid
+                        criterios={rubrica.criterios}
+                        scores={refPuntajes}
+                        onScore={(cid, val) => setScoreRef(cid, val)}
+                    />
                     <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f1f5f9', display:'flex', alignItems:'center', gap:'8px', background:'#fffbeb' }}>
                         <Info size={14} style={{ color:'#d97706', flexShrink:0 }}/>
                         <span style={{ fontSize:'0.75rem', color:'#92400e' }}>
-                            Los puntajes ingresados aquí se reflejan en cada estudiante en modo <strong>Individual</strong>. Guarda desde allí.
+                            {hayRef
+                                ? <>✓ Puntajes de referencia listos — aparecerán en el <strong>PDF</strong>.</>
+                                : <>Selecciona puntajes por criterio. No se guardan en base de datos.</>
+                            }
                         </span>
                     </div>
                 </div>
@@ -183,7 +181,6 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                                                 </div>
                                             </div>
                                         </button>
-                                        {/* Botón editar: aparece si ya está guardado O si hay nota cargada del DB */}
                                         {(saved || calcPromedio(est.id) > 0) && (
                                             <button title="Editar calificación"
                                                 onClick={() => { setEstudianteActivo(est); setEditando(p => ({ ...p, [est.id]: true })); }}
@@ -216,7 +213,6 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                                         {estudianteActivo.document_number ? `CC ${estudianteActivo.document_number} · ` : ''}{estudianteActivo.email}
                                     </p>
                                 </div>
-                                {/* Badge estado */}
                                 {guardados[estudianteActivo.id] && !editando[estudianteActivo.id] && (
                                     <span style={{ background:'#dcfce7', color:'#16a34a', fontWeight:700, fontSize:'0.72rem', padding:'4px 10px', borderRadius:'20px', display:'flex', alignItems:'center', gap:'4px' }}>
                                         <CheckCircle size={12}/> Guardado
@@ -229,7 +225,6 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                                 )}
                             </div>
 
-                            {/* Grid (deshabilitado si guardado y no editando) */}
                             <div style={{ opacity: puedeEditar(estudianteActivo.id) ? 1 : 0.65, pointerEvents: puedeEditar(estudianteActivo.id) ? 'auto' : 'none', transition:'opacity 0.2s' }}>
                                 <RubricaGrid
                                     criterios={rubrica.criterios}

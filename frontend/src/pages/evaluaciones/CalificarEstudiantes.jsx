@@ -28,15 +28,7 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
         : todosEstudiantes;
 
     // Cargar rubrica + calificaciones existentes del DB
-    // + cargar referencia colectiva desde localStorage
     useEffect(() => {
-        // 1) Cargar referencia colectiva persistida
-        try {
-            const stored = localStorage.getItem(REF_KEY);
-            if (stored) setRefPuntajes(JSON.parse(stored));
-        } catch {}
-
-        // 2) Cargar rúbrica y calificaciones
         Promise.all([
             api.get(`/evaluaciones/rubricas/${evaluacion.rubrica}/`),
             api.get(`/evaluaciones/calificaciones/?evaluacion_id=${evaluacion.id}`),
@@ -44,35 +36,39 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
             setRubrica(rRes.data);
             const cals = Array.isArray(cRes.data) ? cRes.data : cRes.data?.results || [];
             const pMap = {};
+            const rMap = {};
             const gMap = {};
             cals.forEach(c => {
                 const normalized = {};
                 Object.entries(c.puntajes || {}).forEach(([k, v]) => {
                     normalized[parseInt(k)] = v;
                 });
-                pMap[c.usuario_agon_id] = normalized;
-                gMap[c.usuario_agon_id] = true;
+                if (c.evaluador_id === 1) {
+                    rMap[c.usuario_agon_id] = normalized;
+                } else {
+                    pMap[c.usuario_agon_id] = normalized;
+                    gMap[c.usuario_agon_id] = true;
+                }
             });
             setPuntajes(pMap);
+            setRefPuntajes(rMap);
             setGuardados(gMap);
             if (todosEstudiantes.length) setEstudianteActivo(todosEstudiantes[0]);
         });
     }, []);
 
-    // Persistir referencia colectiva en localStorage cada vez que cambia
-    useEffect(() => {
-        if (Object.keys(refPuntajes).length > 0) {
-            localStorage.setItem(REF_KEY, JSON.stringify(refPuntajes));
-        }
-    }, [refPuntajes]);
-
     // Nota individual por estudiante
     const setScore = (uid, cid, val) =>
         setPuntajes(p => ({ ...p, [uid]: { ...(p[uid] || {}), [cid]: val } }));
 
-    // Nota de referencia colectiva — estado SEPARADO, no toca puntajes individuales
-    const setScoreRef = (cid, val) =>
-        setRefPuntajes(p => ({ ...p, [cid]: val }));
+    // Nota de referencia colectiva (evaluador 2)
+    const setScoreRef = (cid, val) => {
+        if (!estudianteActivo) return;
+        setRefPuntajes(p => ({
+            ...p,
+            [estudianteActivo.id]: { ...(p[estudianteActivo.id] || {}), [cid]: val }
+        }));
+    };
 
     const calcPromedio = useCallback((uid) => {
         if (!rubrica?.criterios?.length) return 0;
@@ -87,6 +83,7 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                 evaluacion_grupo: evaluacion.id,
                 usuario_agon_id: uid,
                 puntajes: puntajes[uid] || {},
+                puntajes_ref: refPuntajes[uid] || {},
                 nota_final: parseFloat(calcPromedio(uid).toFixed(2)),
             });
             setGuardados(p => ({ ...p, [uid]: true }));
@@ -107,6 +104,7 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                 data: { evaluacion_grupo: evaluacion.id, usuario_agon_id: uid }
             });
             setPuntajes(p => { const n = { ...p }; delete n[uid]; return n; });
+            setRefPuntajes(p => { const n = { ...p }; delete n[uid]; return n; });
             setGuardados(p => { const n = { ...p }; delete n[uid]; return n; });
             setEditando(p => { const n = { ...p }; delete n[uid]; return n; });
         } catch (e) {
@@ -130,7 +128,6 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
             setEditando({});
             // Limpiar también referencia colectiva
             setRefPuntajes({});
-            localStorage.removeItem(REF_KEY);
             alert(`✓ Grupo reiniciado. Ya puedes evaluar a cada estudiante individualmente.`);
         } catch (e) {
             alert('Error al reiniciar: ' + (e?.response?.data?.error || e.message));
@@ -152,8 +149,9 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
         );
     }
 
-    // Para el display del grid colectivo: mostrar refPuntajes
-    const hayRef = rubrica.criterios?.some(c => (refPuntajes[c.id] || 0) > 0);
+    // Para el display del grid colectivo del estudiante activo
+    const currentRef = refPuntajes[estudianteActivo?.id] || {};
+    const hayRef = rubrica.criterios?.some(c => (currentRef[c.id] || 0) > 0);
 
     return (
         <div className="eval-page">
@@ -192,10 +190,10 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                             Ingresa los puntajes de referencia. Aparecerán en el PDF junto a las notas individuales.
                         </p>
                     </div>
-                    {/* Grid muestra refPuntajes — completamente separado de los individuales */}
+                    {/* Grid muestra currentRef del estudiante activo */}
                     <RubricaGrid
                         criterios={rubrica.criterios}
-                        scores={refPuntajes}
+                        scores={currentRef}
                         onScore={(cid, val) => setScoreRef(cid, val)}
                     />
                     <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f1f5f9', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'8px', background: hayRef ? '#f0fdf4' : '#fffbeb' }}>
@@ -203,13 +201,13 @@ export default function CalificarEstudiantes({ evaluacion, curso, onBack }) {
                             <Info size={14} style={{ color: hayRef ? '#16a34a' : '#d97706', flexShrink:0 }}/>
                             <span style={{ fontSize:'0.75rem', color: hayRef ? '#166534' : '#92400e' }}>
                                 {hayRef
-                                    ? <>✓ Referencia guardada: <strong>{rubrica.criterios?.filter(c => (refPuntajes[c.id] || 0) > 0).length}/{rubrica.criterios?.length}</strong> criterios · Se verá en el PDF.</>
-                                    : <>Selecciona puntajes por criterio. Se guardan automáticamente y aparecen en el PDF.</>
+                                    ? <>✓ Referencia añadida a <strong>{estudianteActivo?.first_name}</strong>: <strong>{rubrica.criterios?.filter(c => (currentRef[c.id] || 0) > 0).length}/{rubrica.criterios?.length}</strong> criterios.</>
+                                    : <>Añade los puntajes de referencia para <strong>{estudianteActivo?.first_name}</strong>.</>
                                 }
                             </span>
                         </div>
                         {hayRef && (
-                            <button onClick={() => { setRefPuntajes({}); localStorage.removeItem(REF_KEY); }}
+                            <button onClick={() => setRefPuntajes(p => { const n={...p}; delete n[estudianteActivo?.id]; return n; })}
                                 style={{ fontSize:'0.7rem', color:'#dc2626', background:'#fee2e2', border:'none', borderRadius:'6px', padding:'4px 10px', cursor:'pointer', whiteSpace:'nowrap' }}>
                                 Limpiar referencia
                             </button>

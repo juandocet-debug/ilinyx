@@ -110,6 +110,7 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         evaluacion_grupo_id = request.data.get('evaluacion_grupo')
         usuario_agon_id     = request.data.get('usuario_agon_id')
         puntajes            = request.data.get('puntajes', {})
+        puntajes_ref        = request.data.get('puntajes_ref', {})
         nota_final          = request.data.get('nota_final', 0)
 
         if not evaluacion_grupo_id or not usuario_agon_id:
@@ -123,15 +124,35 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             nota_final = 0.0
 
+        # Registro del profesor (evaluador_id=0)
         obj, created = Calificacion.objects.update_or_create(
             evaluacion_grupo_id=evaluacion_grupo_id,
             usuario_agon_id=usuario_agon_id,
-            evaluador_id=0,  # siempre 0 — unívoco por estudiante
+            evaluador_id=0,
             defaults={
                 'puntajes': puntajes,
                 'nota_final': nota_final,
             }
         )
+
+        # Registro de referencia / estudiante (evaluador_id=1)
+        if puntajes_ref:
+            Calificacion.objects.update_or_create(
+                evaluacion_grupo_id=evaluacion_grupo_id,
+                usuario_agon_id=usuario_agon_id,
+                evaluador_id=1,
+                defaults={
+                    'puntajes': puntajes_ref,
+                    'nota_final': 0.0,
+                }
+            )
+        else:
+            Calificacion.objects.filter(
+                evaluacion_grupo_id=evaluacion_grupo_id,
+                usuario_agon_id=usuario_agon_id,
+                evaluador_id=1
+            ).delete()
+
         code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(CalificacionSerializer(obj).data, status=code)
 

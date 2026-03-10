@@ -110,10 +110,6 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
     const valMin = Math.min(...[...valoresSet]);
     const valMax = Math.max(...[...valoresSet]);
 
-    const hayRef = rubrica.criterios?.some(c => (colScores[c.id] || 0) > 0);
-    // promedioRef siempre calculado (puede ser 0 si no hay referencia)
-    const promedioRef = calcPromedioRef(rubrica.criterios, colScores);
-
     const fecha = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
     return (
@@ -161,6 +157,8 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                 {/* ── Sección por estudiante ── */}
                 {estudiantes.map((est, idx) => {
                     const profeAvg = calcPromedio(est.id);
+                    const refScores = colScores[est.id] || {};
+                    const promedioRef = calcPromedioRef(rubrica.criterios, refScores);
                     // Nota final SOLO si el evaluador dio puntaje — la referencia no cuenta por sí sola
                     const notaFinal = (profeAvg > 0 && promedioRef > 0)
                         ? (profeAvg + promedioRef) / 2
@@ -229,7 +227,7 @@ export default function EvalPDF({ rubrica, curso, puntajes, colScores = {}, calc
                                 <tbody>
                                     {rubrica.criterios?.map((c, ci) => {
                                         const selP = puntajes[est.id]?.[c.id] || 0;
-                                        const selR = colScores?.[c.id] || 0;
+                                        const selR = refScores[c.id] || 0;
                                         const nivelP = c.niveles?.find(n => n.valor === selP);
                                         const nivelR = c.niveles?.find(n => n.valor === selR);
                                         return (

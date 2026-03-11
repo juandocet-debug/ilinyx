@@ -9,6 +9,9 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ActasPage = lazy(() => import('./pages/Actas'));
 const GruposPage = lazy(() => import('./pages/Grupos'));
 const EvaluacionesPage = lazy(() => import('./pages/evaluaciones/Evaluaciones'));
+const EntornosHub = lazy(() => import('./pages/entornos/EntornosHub'));
+const EntornoDetalle = lazy(() => import('./pages/entornos/EntornoDetalle'));
+const EntornoForm = lazy(() => import('./pages/entornos/EntornoForm'));
 
 const PageLoader = () => (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-4">
@@ -56,7 +59,12 @@ function App() {
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/actas" element={<ActasPage />} />
                             <Route path="/grupos" element={<GruposPage />} />
-                            <Route path="/evaluaciones" element={<EvaluacionesPage />} />
+                            {/* Hub de evaluaciones (entrono + legacy en tabs) */}
+                            <Route path="/evaluaciones" element={<EntornosHub />} />
+                            {/* Entornos */}
+                            <Route path="/entornos/nuevo" element={<EntornoForm />} />
+                            <Route path="/entornos/:id" element={<EntornoDetalle />} />
+                            <Route path="/entornos/:id/editar" element={<EntornoForm />} />
                         </Route>
                     </Routes>
                 </Suspense>

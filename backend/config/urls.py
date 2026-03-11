@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/actas/', include('actas.urls')),
     path('api/grupos/', include('grupos.urls')),
     path('api/evaluaciones/', include('evaluaciones.urls')),
+    path('api/entornos/', include('entornos.urls')),
 
     # Sirve el frontend React en cualquier otra ruta
     path('', TemplateView.as_view(template_name='index.html')),

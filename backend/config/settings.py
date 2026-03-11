@@ -1,6 +1,9 @@
 from pathlib import Path
 import os
 import dj_database_url
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -90,10 +93,7 @@ STATICFILES_DIRS = [_FRONTEND_DIST] if _FRONTEND_DIST.exists() else []
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# ── Cloudinary (fotos del acta, evidencias) ────────────────────────────────
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+
 
 cloudinary.config(
     cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),

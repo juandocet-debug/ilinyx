@@ -7,6 +7,7 @@ from .serializers import (
     RubricaSerializer, RubricaCreateSerializer,
     EvaluacionGrupoSerializer, CalificacionSerializer
 )
+from .constants import EVALUADOR_PROFESOR, EVALUADOR_REFERENCIA
 
 
 class RubricaViewSet(viewsets.ModelViewSet):
@@ -124,23 +125,23 @@ class CalificacionViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             nota_final = 0.0
 
-        # Registro del profesor (evaluador_id=0)
+        # Registro del profesor
         obj, created = Calificacion.objects.update_or_create(
             evaluacion_grupo_id=evaluacion_grupo_id,
             usuario_agon_id=usuario_agon_id,
-            evaluador_id=0,
+            evaluador_id=EVALUADOR_PROFESOR,
             defaults={
                 'puntajes': puntajes,
                 'nota_final': nota_final,
             }
         )
 
-        # Registro de referencia / estudiante (evaluador_id=1)
+        # Registro de referencia / colectivo
         if puntajes_ref:
             Calificacion.objects.update_or_create(
                 evaluacion_grupo_id=evaluacion_grupo_id,
                 usuario_agon_id=usuario_agon_id,
-                evaluador_id=1,
+                evaluador_id=EVALUADOR_REFERENCIA,
                 defaults={
                     'puntajes': puntajes_ref,
                     'nota_final': 0.0,
@@ -150,7 +151,7 @@ class CalificacionViewSet(viewsets.ModelViewSet):
             Calificacion.objects.filter(
                 evaluacion_grupo_id=evaluacion_grupo_id,
                 usuario_agon_id=usuario_agon_id,
-                evaluador_id=1
+                evaluador_id=EVALUADOR_REFERENCIA,
             ).delete()
 
         code = status.HTTP_201_CREATED if created else status.HTTP_200_OK

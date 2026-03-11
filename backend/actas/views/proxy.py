@@ -3,11 +3,14 @@ actas/views/proxy.py
 Endpoints proxy que llaman a AGON server-to-server con API key.
 El frontend nunca llama a AGON directamente — siempre a través de aquí.
 """
+import logging
 import requests as http_requests
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
@@ -25,11 +28,7 @@ def search_agon_users(request):
     api_key  = getattr(settings, 'ILINYX_API_KEY', None)
 
     if not agon_url or not api_key:
-        return Response(
-            {'detail': 'Configuración de AGON no encontrada en el servidor.',
-             'agon_url_set': bool(agon_url), 'api_key_set': bool(api_key)},
-            status=503,
-        )
+        return Response({'detail': 'Servicio de búsqueda no disponible.'}, status=503)
 
     target_url = f'{agon_url}/users/search/'
     try:
@@ -40,19 +39,18 @@ def search_agon_users(request):
             timeout=10,
         )
         if resp.status_code != 200:
-            return Response({
-                'debug_error': True,
-                'agon_status': resp.status_code,
-                'agon_response': resp.text[:500],
-                'target_url': target_url,
-            })
+            logger.warning('AGON search status=%d url=%s', resp.status_code, target_url)
+            return Response({'detail': 'No se pudo consultar el directorio.'}, status=502)
         return Response(resp.json())
-    except http_requests.exceptions.ConnectionError as e:
-        return Response({'debug_error': True, 'type': 'ConnectionError', 'detail': str(e)[:500]})
+    except http_requests.exceptions.ConnectionError:
+        logger.error('Connection error to AGON: %s', target_url)
+        return Response({'detail': 'No se pudo conectar al directorio.'}, status=502)
     except http_requests.exceptions.Timeout:
-        return Response({'debug_error': True, 'type': 'Timeout', 'target_url': target_url})
+        logger.error('Timeout connecting to AGON: %s', target_url)
+        return Response({'detail': 'Tiempo de espera agotado.'}, status=504)
     except Exception as e:
-        return Response({'debug_error': True, 'type': type(e).__name__, 'detail': str(e)[:500]})
+        logger.exception('Unexpected error in search_agon_users')
+        return Response({'detail': 'Error interno.'}, status=500)
 
 
 @api_view(['GET'])
@@ -66,7 +64,7 @@ def fetch_agon_courses(request):
     api_key  = getattr(settings, 'ILINYX_API_KEY', None)
 
     if not agon_url or not api_key:
-        return Response({'detail': 'Configuración de AGON no encontrada.'}, status=503)
+        return Response({'detail': 'Servicio no disponible.'}, status=503)
 
     target_url = f'{agon_url}/users/courses-for-ilinyx/'
     try:
@@ -76,22 +74,21 @@ def fetch_agon_courses(request):
             timeout=15,
         )
         if resp.status_code != 200:
-            return Response({
-                'debug_error': True,
-                'agon_status': resp.status_code,
-                'agon_response': resp.text[:500],
-            })
+            logger.warning('AGON courses status=%d', resp.status_code)
+            return Response({'detail': 'No se pudo consultar las clases.'}, status=502)
+
         all_courses = resp.json()
-        # Filtrar solo los cursos donde el docente es el usuario logueado
         teacher_id = getattr(request.user, 'id', None)
         if teacher_id:
             filtered = [c for c in all_courses if c.get('teacher_id') == teacher_id]
         else:
             filtered = all_courses
         return Response(filtered)
-    except http_requests.exceptions.ConnectionError as e:
-        return Response({'detail': f'No se pudo conectar a AGON: {str(e)[:200]}'}, status=502)
+    except http_requests.exceptions.ConnectionError:
+        logger.error('Connection error to AGON courses')
+        return Response({'detail': 'No se pudo conectar al directorio.'}, status=502)
     except http_requests.exceptions.Timeout:
-        return Response({'detail': 'Timeout al conectar con AGON'}, status=504)
-    except Exception as e:
-        return Response({'detail': str(e)[:300]}, status=500)
+        return Response({'detail': 'Tiempo de espera agotado.'}, status=504)
+    except Exception:
+        logger.exception('Unexpected error in fetch_agon_courses')
+        return Response({'detail': 'Error interno.'}, status=500)

@@ -61,3 +61,4 @@ class AgonJWTAuthentication(BaseAuthentication):
 
         user_data = resp.json()
         return (AgonUser(user_data), token)
+

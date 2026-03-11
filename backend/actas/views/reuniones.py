@@ -207,3 +207,27 @@ def reuniones_comentar(request, pk):
     acta.data = data
     acta.save()
     return Response({'success': True}, status=201)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def acta_comments(request, acta_id):
+    """
+    Endpoint legacy de comentarios (placeholder).
+    Los comentarios reales de ActaReunion se manejan en reuniones_comentar.
+    """
+    if request.method == 'POST':
+        user = request.user
+        name = f'{user.first_name} {user.last_name}'.strip() or user.username
+        return Response({
+            'success': True,
+            'comment': {
+                'user_id': user.id,
+                'user_name': name,
+                'user_role': getattr(user, 'role', ''),
+                'text': request.data.get('text', ''),
+                'created_at': request.data.get('created_at', ''),
+            }
+        }, status=201)
+    return Response([])
+

@@ -30,6 +30,7 @@ export default function EntornoForm() {
     const [saving, setSaving] = useState(false);
     const [grupos, setGrupos] = useState([]);         // grupos AGON disponibles
     const [loadingGrupos, setLoadingGrupos] = useState(true);
+    const [searchGrupo, setSearchGrupo] = useState(''); // Filtro de búsqueda
 
     const [form, setForm] = useState({
         nombre: '', semestre: '', descripcion: '', objetivos: '',
@@ -170,10 +171,19 @@ export default function EntornoForm() {
             {/* Step 1 — Grupos */}
             {step === 1 && (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-                    <p className="text-sm text-slate-500">
-                        Selecciona los grupos de AGON que pertenecen a este espacio
-                        ({form.grupos_agon_ids.length} seleccionados)
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <p className="text-sm text-slate-500">
+                            Filtra y selecciona los grupos de AGON ({form.grupos_agon_ids.length} seleccionados)
+                        </p>
+                        <input 
+                            type="text"
+                            placeholder="Buscar grupo, profesor..."
+                            value={searchGrupo}
+                            onChange={(e) => setSearchGrupo(e.target.value)}
+                            className="w-full sm:w-64 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 bg-slate-50 transition-all font-medium"
+                            style={{ '--tw-ring-color': `${color}40`, borderColor: searchGrupo ? color : '#e2e8f0' }}
+                        />
+                    </div>
                     {loadingGrupos ? (
                         <div className="flex justify-center py-12">
                             <Loader2 className="h-7 w-7 text-ilinyx-500 animate-spin" />
@@ -181,8 +191,15 @@ export default function EntornoForm() {
                     ) : grupos.length === 0 ? (
                         <p className="text-slate-400 text-sm text-center py-10">No se encontraron grupos en AGON</p>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {grupos.map(g => {
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-1">
+                            {grupos
+                                .filter(g => {
+                                    if (!searchGrupo) return true;
+                                    const q = searchGrupo.toLowerCase();
+                                    return g.name.toLowerCase().includes(q) || 
+                                           (g.teacher_name && g.teacher_name.toLowerCase().includes(q));
+                                })
+                                .map(g => {
                                 const selected = form.grupos_agon_ids.includes(g.id);
                                 return (
                                     <button key={g.id} onClick={() => toggleGrupo(g)}

@@ -58,10 +58,9 @@ function App() {
                         }>
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/actas" element={<ActasPage />} />
-                            <Route path="/grupos" element={<GruposPage />} />
-                            {/* Hub de evaluaciones (entrono + legacy en tabs) */}
-                            <Route path="/evaluaciones" element={<EntornosHub />} />
-                            {/* Entornos */}
+                            <Route path="/entornos" element={<EntornosHub />} />
+                            <Route path="/evaluaciones" element={<EvaluacionesPage />} />
+                            {/* Entornos Detalles */}
                             <Route path="/entornos/nuevo" element={<EntornoForm />} />
                             <Route path="/entornos/:id" element={<EntornoDetalle />} />
                             <Route path="/entornos/:id/editar" element={<EntornoForm />} />

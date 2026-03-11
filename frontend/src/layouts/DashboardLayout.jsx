@@ -15,7 +15,7 @@ const UPN_LOGO = 'https://i.ibb.co/C5SB6zj4/Identidad-UPN-25-vertical-azul-fondo
 const NAV_ITEMS = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Inicio' },
     { to: '/actas', icon: FileSignature, label: 'Registro de Actas' },
-    { to: '/grupos', icon: Users2, label: 'Cohortes / Grupos' },
+    { to: '/entornos', icon: LayoutDashboard, label: 'Entornos Académicos' },
     { to: '/evaluaciones', icon: FileSignature, label: 'Evaluaciones' },
 ];
 

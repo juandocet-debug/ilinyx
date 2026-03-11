@@ -42,22 +42,24 @@ export function useActas(user, addToast) {
     const saveActa = async (current) => {
         if (!current) return false;
         try {
-            const isExisting = current.id && actas.find(a => a.id === current.id);
-            if (isExisting) {
-                await updateActaReunion(current.id, current);
-                addToast('Acta actualizada correctamente', 'success');
-            } else {
-                await createActaReunion(current);
+            // isNew=true → POST (crear). isNew=false y tiene id real → PUT (actualizar)
+            if (current.isNew) {
+                const { isNew, ...payload } = current;
+                await createActaReunion(payload);
                 addToast('Acta creada correctamente', 'success');
+            } else {
+                const { isNew, ...payload } = current;
+                await updateActaReunion(current.id, payload);
+                addToast('Acta actualizada correctamente', 'success');
             }
             await loadActas();
-            return true;   // éxito → el llamador puede navegar
+            return true;
         } catch (err) {
             const detail = err.response?.data?.detail
                 || (typeof err.response?.data === 'string' ? err.response.data : null)
                 || err.message || 'Error desconocido';
             addToast(`Error al guardar: ${detail}`, 'error');
-            return false;   // fallo → el llamador NO navega
+            return false;
         }
     };
 

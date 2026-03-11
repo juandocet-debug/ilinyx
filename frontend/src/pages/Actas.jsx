@@ -18,7 +18,7 @@ import ActasPrintView from './ActasPrintView';
 
 // ── Factory de acta vacía ─────────────────────────────────────────
 const mkActa = () => ({
-    id: Date.now(), createdAt: new Date().toISOString(),
+    isNew: true,  // flag para distinguir nueva vs existente sin depender del id local
     tipo: 'ACTA', numero: '', total: '',
     fecha: '', hora_inicio: '', hora_final: '', instancias: '', lugar: '',
     asistentes: [{ nombre: '', cargo: '', email: '', user_id: null, foto: '' }],
@@ -63,7 +63,8 @@ export default function ActasPage() {
     const handleEdit = (a) => {
         if (isStudent) return;
         if (a.creador_id && String(a.creador_id) !== String(user?.id)) { addToast('Solo el creador puede editar', 'warning'); return; }
-        setCurrent({ ...a }); setStep(0); setView('form');
+        // Al editar desde BD, quitamos el flag isNew para que se haga PUT
+        setCurrent({ ...a, isNew: false }); setStep(0); setView('form');
     };
     const handleView = (a) => { setCurrent({ ...a }); setPrevView(view); setView('preview'); };
     const handleDelete = (id) => {

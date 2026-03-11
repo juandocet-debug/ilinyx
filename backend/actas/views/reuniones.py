@@ -53,7 +53,8 @@ def reuniones_list(request):
     user = request.user
 
     if request.method == 'GET':
-        actas = ActaReunion.objects.filter(creador_id=user.id)
+        is_admin = getattr(user, 'role', '') == 'ADMIN'
+        actas = ActaReunion.objects.all() if is_admin else ActaReunion.objects.filter(creador_id=user.id)
         return Response([_serialize(a) for a in actas])
 
     # POST — crear

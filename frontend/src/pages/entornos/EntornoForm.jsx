@@ -76,7 +76,7 @@ export default function EntornoForm() {
         setSaving(true);
         try {
             await saveEntorno(form, isEdit ? Number(id) : null);
-            navigate('/evaluaciones');
+            navigate('/entornos');
         } catch { setSaving(false); }
     };
 
@@ -86,7 +86,7 @@ export default function EntornoForm() {
         <div className="max-w-2xl mx-auto space-y-6 pb-10">
             {/* Header */}
             <div className="flex items-center gap-3">
-                <button onClick={() => navigate('/evaluaciones')}
+                <button onClick={() => navigate('/entornos')}
                     className="p-2 rounded-xl hover:bg-slate-100 text-slate-500">
                     <ChevronLeft className="h-5 w-5" />
                 </button>

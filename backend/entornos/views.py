@@ -180,6 +180,9 @@ class EntornoViewSet(viewsets.ModelViewSet):
             'estructura': estructura_cortes,
             'estudiantes': estudiantes_lista
         })
+
+
+class CorteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):

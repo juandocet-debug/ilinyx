@@ -6,6 +6,7 @@ import {
     LayoutDashboard, FileSignature, Users2,
     LogOut, Menu, X, ChevronRight, Bell, User
 } from 'lucide-react';
+import ServerStatus from '../components/ui/ServerStatus';
 
 const ROLE_ES = { ADMIN: 'Administrador', TEACHER: 'Docente', STUDENT: 'Estudiante' };
 
@@ -147,6 +148,9 @@ export default function DashboardLayout() {
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
+                            {/* Indicador AGON */}
+                            <ServerStatus />
+
                             {/* Campana */}
                             <button className="relative text-slate-400 hover:text-ilinyx-600 transition-colors p-1">
                                 <Bell className="h-5 w-5" />

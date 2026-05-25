@@ -78,9 +78,10 @@ def fetch_agon_courses(request):
             return Response({'detail': 'No se pudo consultar las clases.'}, status=502)
 
         all_courses = resp.json()
+        # Filtrar solo los cursos donde el docente es el usuario logueado
         teacher_id = getattr(request.user, 'id', None)
         if teacher_id:
-            filtered = [c for c in all_courses if c.get('teacher_id') == teacher_id]
+            filtered = [c for c in all_courses if str(c.get('teacher_id')) == str(teacher_id)]
         else:
             filtered = all_courses
         return Response(filtered)

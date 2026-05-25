@@ -75,16 +75,18 @@ def fetch_agon_courses(request):
         )
         if resp.status_code != 200:
             logger.warning('AGON courses status=%d', resp.status_code)
-            return Response({'detail': 'No se pudo consultar las clases.'}, status=502)
+            return Response({'detail': 'No se pudo consultar las clases.', 'agon_status': resp.status_code, 'agon_body': resp.text[:300]}, status=502)
 
         all_courses = resp.json()
-        # Filtrar solo los cursos donde el docente es el usuario logueado
         teacher_id = getattr(request.user, 'id', None)
-        if teacher_id:
-            filtered = [c for c in all_courses if str(c.get('teacher_id')) == str(teacher_id)]
-        else:
-            filtered = all_courses
-        return Response(filtered)
+        # DEBUG: devolver todos sin filtrar para diagnosticar
+        return Response({
+            '__debug': True,
+            'teacher_id_en_ilinyx': teacher_id,
+            'teacher_ids_en_agon': list({str(c.get('teacher_id')) for c in all_courses}),
+            'total_cursos': len(all_courses),
+            'cursos': all_courses,
+        })
     except http_requests.exceptions.ConnectionError:
         logger.error('Connection error to AGON courses')
         return Response({'detail': 'No se pudo conectar al directorio.'}, status=502)

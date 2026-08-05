@@ -4,11 +4,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 
-from config.views import me_view
+from config.views import health_view, me_view
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/health/', health_view),
     path('api/auth/me/', me_view),
     path('api/actas/', include('actas.urls')),
     path('api/grupos/', include('grupos.urls')),

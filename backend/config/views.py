@@ -5,6 +5,7 @@ Separado de agon_auth.py para evitar importaciones circulares con DRF settings.
 """
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 
@@ -23,3 +24,9 @@ def me_view(request):
         'role':       getattr(u, 'role', ''),
         'is_staff':   getattr(u, 'is_staff', False),
     })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_view(_request):
+    return Response({'status': 'ok'})

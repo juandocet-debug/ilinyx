@@ -35,6 +35,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'config.health_middleware.HealthCheckMiddleware',
     'config.cors_middleware.ForceCORSMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
